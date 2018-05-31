@@ -318,16 +318,16 @@ class Printer():
 if __name__ == '__main__':
 	args = get_args()
 
-	p = Printer(log_dir,args.log)
 	time_info = time.strftime('%Y-%m-%d_%H%M%S',time.localtime(time.time()))
 	if args.train:
 		model = ModifiedVGG16Model().cuda()
 		log_dir = os.path.abspath("./log/train-"+time_info+"/")
-		p.log("doing fine tuning(train)")
 	elif args.prune:
 		model = torch.load(args.model_path).cuda()
 		log_dir = os.path.abspath("./log/prune-"+time_info+"/")
-		p.log("doing pruning")
+	p = Printer(log_dir,args.log)
+	msg = "doing fine tuning(train)" if args.train else "doing pruning"
+	p.log(msg)
 	os.system("mkdir "+log_dir)
 	os.system("touch "+os.path.join(log_dir,"log.txt"))
 	p.log(str(model))
