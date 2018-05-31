@@ -2,7 +2,7 @@ import torch
 from torch.autograd import Variable
 from torchvision import models
 import cv2
-import sys
+import sys, os
 import numpy as np
 import torchvision
 import torch.nn as nn
@@ -14,6 +14,8 @@ import argparse
 from operator import itemgetter
 from heapq import nsmallest
 import time
+import matplotlib.pyplot as plt
+
 
 class ModifiedVGG16Model(torch.nn.Module):
 	def __init__(self):
@@ -62,10 +64,10 @@ class FilterPrunner:
 		for layer, (name, module) in enumerate(self.model.features._modules.items()):
 		    x = module(x)
 		    if isinstance(module, torch.nn.modules.conv.Conv2d):
-		    	x.register_hook(self.compute_rank)
-		        self.activations.append(x)
-		        self.activation_to_layer[activation_index] = layer
-		        activation_index += 1
+                        x.register_hook(self.compute_rank)
+                        self.activations.append(x)
+                        self.activation_to_layer[activation_index] = layer
+                        activation_index += 1
 
 		return self.model.classifier(x.view(x.size(0), -1))
 
@@ -125,14 +127,16 @@ class FilterPrunner:
 		return filters_to_prune				
 
 class PrunningFineTuner_VGG16:
-	def __init__(self, train_path, test_path, model):
-		self.train_data_loader = dataset.loader(train_path)
-		self.test_data_loader = dataset.test_loader(test_path)
-
+	def __init__(self, train_path, test_path, model, log_dir=None):
+		self.train_data_loader, self.valid_data_loader, self.test_data_loader\
+			 = dataset.train_valid_test_loader(train_path)
+		self.test_path = test_path
 		self.model = model
 		self.criterion = torch.nn.CrossEntropyLoss()
 		self.prunner = FilterPrunner(self.model) 
 		self.model.train()
+		self.log_dir = log_dir
+		self.p = Printer(log_dir)
 
 	def test(self):
 		self.model.eval()
@@ -146,23 +150,69 @@ class PrunningFineTuner_VGG16:
 	 		correct += pred.cpu().eq(label).sum()
 	 		total += label.size(0)
 	 	
-	 	print "Accuracy :", float(correct) / total
+	 	self.p.log("Test Accuracy :%.4f"% (float(correct) / total))
 	 	
 	 	self.model.train()
+
+	def eval_train(self):
+		self.model.eval()
+		correct = 0
+		total = 0
+		for i, (batch, label) in enumerate(self.train_data_loader):
+			if i and i%100 == 0: print i,
+			batch = batch.cuda()
+			output = model(Variable(batch))
+			pred = output.data.max(1)[1]
+	 		correct += pred.cpu().eq(label).sum()
+	 		total += label.size(0)
+	 	train_acc = float(correct) / total
+	 	self.p.log("\ntrain accuracy :%.4f"% train_acc)
+	 	
+	 	self.model.train()
+
+	def valid_train(self):
+		self.model.eval()
+		correct = 0
+		total = 0
+		for i, (batch, label) in enumerate(self.valid_data_loader):
+			if i and i%10 == 0: print i,
+			batch = batch.cuda()
+			output = model(Variable(batch))
+			pred = output.data.max(1)[1]
+	 		correct += pred.cpu().eq(label).sum()
+	 		total += label.size(0)
+	 	valid_acc = float(correct) / total
+	 	self.p.log("\nvalid Accuracy :%.4f"%valid_acc)
+	 	
+	 	self.model.train()
+		return valid_acc
 
 	def train(self, optimizer = None, epoches = 10):
 		if optimizer is None:
 			optimizer = \
-				optim.SGD(model.classifier.parameters(), 
-					lr=0.0001, momentum=0.9)
+				optim.Adam(model.classifier.parameters(), 
+					lr=0.0001)
+
+		best_acc = 0
 
 		for i in range(epoches):
-			print "Epoch: ", i
+			self.p.log("Epoch: %d"%i)
+			start = time.time()
 			self.train_epoch(optimizer)
-			self.test()
-		print "Finished fine tuning."
+			train_time = time.time() - start
+			self.eval_train()
+			train_eval_time = time.time() - start - train_time
+			valid_acc = self.valid_train()
+			if best_acc < valid_acc:
+				best_acc = valid_acc
+				torch.save(self.model, os.path.join(self.log_dir,"model"))
+				self.p.log("model resaved...")
+			self.p.log("train step time elaps: %.2f, train_acc eval time elaps: %.2f, total time elaps: %.2f"%(
+				train_time, train_eval_time, time.time()-start))
+		self.test()
+		self.p.log("Finished fine tuning. best valid acc is %.4f"%best_acc)
 		
-
+	
 	def train_batch(self, optimizer, batch, label, rank_filters):
 		self.model.zero_grad()
 		input = Variable(batch)
@@ -210,10 +260,10 @@ class PrunningFineTuner_VGG16:
 
 		iterations = int(iterations * 2.0 / 3)
 
-		print "Number of prunning iterations to reduce 67% filters", iterations
+		self.p.log(r"Number of prunning iterations to reduce 67% filters "+str(iterations))
 
 		for _ in range(iterations):
-			print "Ranking filters.. "
+			self.p.log("Ranking filters.. ")
 			prune_targets = self.get_candidates_to_prune(num_filters_to_prune_per_iteration)
 			layers_prunned = {}
 			for layer_index, filter_index in prune_targets:
@@ -221,8 +271,8 @@ class PrunningFineTuner_VGG16:
 					layers_prunned[layer_index] = 0
 				layers_prunned[layer_index] = layers_prunned[layer_index] + 1 
 
-			print "Layers that will be prunned", layers_prunned
-			print "Prunning filters.. "
+			self.p.log("Layers that will be prunned :"+str(layers_prunned))
+			self.p.log("Prunning filters.. ")
 			model = self.model.cpu()
 			for layer_index, filter_index in prune_targets:
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
@@ -230,14 +280,14 @@ class PrunningFineTuner_VGG16:
 			self.model = model.cuda()
 
 			message = str(100*float(self.total_num_filters()) / number_of_filters) + "%"
-			print "Filters prunned", str(message)
+			self.p.log("Filters prunned"+str(message))
 			self.test()
-			print "Fine tuning to recover from prunning iteration."
+			self.p.log("Fine tuning to recover from prunning iteration.")
 			optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
 			self.train(optimizer, epoches = 10)
 
 
-		print "Finished. Going to fine tune the model a bit more"
+		self.p.log("Finished. Going to fine tune the model a bit more")
 		self.train(optimizer, epoches = 15)
 		torch.save(model, "model_prunned")
 
@@ -247,10 +297,19 @@ def get_args():
     parser.add_argument("--prune", dest="prune", action="store_true")
     parser.add_argument("--train_path", type = str, default = "train")
     parser.add_argument("--test_path", type = str, default = "test")
+    parser.add_argument("--model_name", type = str, default = "model")
     parser.set_defaults(train=False)
     parser.set_defaults(prune=False)
     args = parser.parse_args()
     return args
+
+class Printer():
+	def __init__(self, log_dir):
+		self.log_dir = log_dir
+	def log(self, mstr):
+		print(mstr)
+		with open(os.path.join(self.log_dir,"log.txt"),"a") as f:
+			f.write(mstr+"\n")
 
 if __name__ == '__main__':
 	args = get_args()
@@ -258,13 +317,21 @@ if __name__ == '__main__':
 	if args.train:
 		model = ModifiedVGG16Model().cuda()
 	elif args.prune:
-		model = torch.load("model").cuda()
+		model = torch.load(args.model_name).cuda()
+	time_info = time.strftime('%Y-%m-%d_%H%M%S',time.localtime(time.time()))
+	log_dir = os.path.abspath("./log/"+time_info+"/")
+	os.system("mkdir "+log_dir)
+	os.system("touch "+os.path.join(log_dir,"log.txt"))
+	p = Printer(log_dir)
+	p.log(str(model))
 
-	fine_tuner = PrunningFineTuner_VGG16(args.train_path, args.test_path, model)
-
+	p.log("time is :"+time_info)
+	fine_tuner = PrunningFineTuner_VGG16(args.train_path, args.test_path, model, log_dir)
 	if args.train:
+		p.log("begin training...")
 		fine_tuner.train(epoches = 20)
-		torch.save(model, "model")
+		os.system("cp finetune.py "+log_dir)
+		# torch.save(model, log_dir+"model")
 
 	elif args.prune:
 		fine_tuner.prune()
