@@ -297,7 +297,7 @@ def get_args():
     parser.add_argument("--prune", dest="prune", action="store_true")
     parser.add_argument("--train_path", type = str, default = "train")
     parser.add_argument("--test_path", type = str, default = "test")
-    parser.add_argument("--model_name", type = str, default = "model")
+    parser.add_argument("--model_path", type = str, default = "model")
     parser.set_defaults(train=False)
     parser.set_defaults(prune=False)
     args = parser.parse_args()
@@ -314,12 +314,13 @@ class Printer():
 if __name__ == '__main__':
 	args = get_args()
 
+	time_info = time.strftime('%Y-%m-%d_%H%M%S',time.localtime(time.time()))
 	if args.train:
 		model = ModifiedVGG16Model().cuda()
+		log_dir = os.path.abspath("./log/train-"+time_info+"/")
 	elif args.prune:
-		model = torch.load(args.model_name).cuda()
-	time_info = time.strftime('%Y-%m-%d_%H%M%S',time.localtime(time.time()))
-	log_dir = os.path.abspath("./log/"+time_info+"/")
+		model = torch.load(args.model_path).cuda()
+		log_dir = os.path.abspath("./log/prune-"+time_info+"/")
 	os.system("mkdir "+log_dir)
 	os.system("touch "+os.path.join(log_dir,"log.txt"))
 	p = Printer(log_dir)
