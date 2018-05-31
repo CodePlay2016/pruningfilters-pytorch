@@ -308,10 +308,10 @@ def get_args():
 class Printer():
 	def __init__(self, log_dir, log=True):
 		self.log_dir = log_dir
-		self.log = log
+		self.do_log = log
 	def log(self, mstr):
 		print(mstr)
-		if self.log:
+		if self.do_log:
 			with open(os.path.join(self.log_dir,"log.txt"),"a") as f:
 				f.write(mstr+"\n")
 
@@ -319,17 +319,21 @@ if __name__ == '__main__':
 	args = get_args()
 
 	time_info = time.strftime('%Y-%m-%d_%H%M%S',time.localtime(time.time()))
+	log_dir = os.path.abspath("./log/")
 	if args.train:
 		model = ModifiedVGG16Model().cuda()
-		log_dir = os.path.abspath("./log/train-"+time_info+"/")
+		if args.log:
+			log_dir = os.path.abspath("./log/train-"+time_info+"/")
 	elif args.prune:
 		model = torch.load(args.model_path).cuda()
-		log_dir = os.path.abspath("./log/prune-"+time_info+"/")
+		if args.log:
+			log_dir = os.path.abspath("./log/prune-"+time_info+"/")
 	p = Printer(log_dir,args.log)
 	msg = "doing fine tuning(train)" if args.train else "doing pruning"
 	p.log(msg)
-	os.system("mkdir "+log_dir)
-	os.system("touch "+os.path.join(log_dir,"log.txt"))
+	if args.log:
+		os.system("mkdir "+log_dir)
+		os.system("touch "+os.path.join(log_dir,"log.txt"))
 	p.log(str(model))
 
 	p.log("time is :"+time_info)
@@ -337,7 +341,8 @@ if __name__ == '__main__':
 	if args.train:
 		p.log("begin training...")
 		fine_tuner.train(epoches = 20)
-		os.system("cp finetune.py "+log_dir)
+		if args.log:
+			os.system("cp finetune.py "+log_dir)
 		# torch.save(model, log_dir+"model")
 
 	elif args.prune:
