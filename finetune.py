@@ -74,7 +74,13 @@ class FilterPrunner:
 	def compute_rank(self, grad):
 		activation_index = len(self.activations) - self.grad_index - 1
 		activation = self.activations[activation_index]
-		print activation
+		temp = torch.sum((activation * grad), dim = 0)
+		print temp.size()
+		temp = temp.sum(dim=2)
+		print temp.size()
+		temp = temp.sum(dim=3)
+		print temp.size()
+		temp = temp[0,:,0,0].data
 		values = \
 			torch.sum((activation * grad), dim = 0).\
 				sum(dim=2).sum(dim=3)[0, :, 0, 0].data
@@ -302,6 +308,7 @@ def get_args():
     parser.add_argument("--model_path", type = str, default = "model")
     parser.set_defaults(train=False)
     parser.set_defaults(prune=False)
+    parser.set_defaults(log=True)
     args = parser.parse_args()
     return args
 

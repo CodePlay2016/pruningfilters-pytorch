@@ -1,0 +1,1 @@
+debug: python finetune.py --prune --model_path=./log/2018-05-30_191657/model --no-log
