@@ -296,7 +296,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", dest="train", action="store_true")
     parser.add_argument("--prune", dest="prune", action="store_true")
-    parser.add_argument("--log", type=bool, default=True)
+    parser.add_argument("--no-log", dest="log", action="store_false")
     parser.add_argument("--train_path", type = str, default = "train")
     parser.add_argument("--test_path", type = str, default = "test")
     parser.add_argument("--model_path", type = str, default = "model")
