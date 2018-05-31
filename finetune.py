@@ -74,6 +74,7 @@ class FilterPrunner:
 	def compute_rank(self, grad):
 		activation_index = len(self.activations) - self.grad_index - 1
 		activation = self.activations[activation_index]
+		print activation
 		values = \
 			torch.sum((activation * grad), dim = 0).\
 				sum(dim=2).sum(dim=3)[0, :, 0, 0].data
@@ -295,6 +296,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", dest="train", action="store_true")
     parser.add_argument("--prune", dest="prune", action="store_true")
+    parser.add_argument("--log", type=bool, default=True)
     parser.add_argument("--train_path", type = str, default = "train")
     parser.add_argument("--test_path", type = str, default = "test")
     parser.add_argument("--model_path", type = str, default = "model")
@@ -304,26 +306,30 @@ def get_args():
     return args
 
 class Printer():
-	def __init__(self, log_dir):
+	def __init__(self, log_dir, log=True):
 		self.log_dir = log_dir
+		self.log = log
 	def log(self, mstr):
 		print(mstr)
-		with open(os.path.join(self.log_dir,"log.txt"),"a") as f:
-			f.write(mstr+"\n")
+		if self.log:
+			with open(os.path.join(self.log_dir,"log.txt"),"a") as f:
+				f.write(mstr+"\n")
 
 if __name__ == '__main__':
 	args = get_args()
 
+	p = Printer(log_dir,args.log)
 	time_info = time.strftime('%Y-%m-%d_%H%M%S',time.localtime(time.time()))
 	if args.train:
 		model = ModifiedVGG16Model().cuda()
 		log_dir = os.path.abspath("./log/train-"+time_info+"/")
+		p.log("doing fine tuning(train)")
 	elif args.prune:
 		model = torch.load(args.model_path).cuda()
 		log_dir = os.path.abspath("./log/prune-"+time_info+"/")
+		p.log("doing pruning")
 	os.system("mkdir "+log_dir)
 	os.system("touch "+os.path.join(log_dir,"log.txt"))
-	p = Printer(log_dir)
 	p.log(str(model))
 
 	p.log("time is :"+time_info)
