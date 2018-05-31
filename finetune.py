@@ -74,16 +74,16 @@ class FilterPrunner:
 	def compute_rank(self, grad):
 		activation_index = len(self.activations) - self.grad_index - 1
 		activation = self.activations[activation_index]
-		temp = torch.sum((activation * grad), dim = 0)
-		print temp.size()
-		temp = temp.sum(dim=2)
-		print temp.size()
-		temp = temp.sum(dim=3)
-		print temp.size()
-		temp = temp[0,:,0,0].data
+		# temp = torch.sum((activation * grad), dim = 0)
+		# print temp.size()
+		# temp = temp.sum(dim=2)
+		# print temp.size()
+		# temp = temp.sum(dim=3)
+		# print temp.size()
+		# temp = temp[0,:,0,0].data
 		values = \
-			torch.sum((activation * grad), dim = 0).\
-				sum(dim=2).sum(dim=3)[0, :, 0, 0].data
+			torch.sum((activation * grad), dim = 0, keepdim=True).\
+				sum(dim=2,keepdim=True).sum(dim=3,keepdim=True)[0, :, 0, 0].data
 		
 		# Normalize the rank by the filter dimensions
 		values = \
@@ -341,7 +341,7 @@ if __name__ == '__main__':
 	if args.log:
 		os.system("mkdir "+log_dir)
 		os.system("touch "+os.path.join(log_dir,"log.txt"))
-	p.log(str(model))
+	# p.log(str(model))
 
 	p.log("time is :"+time_info)
 	fine_tuner = PrunningFineTuner_VGG16(args.train_path, args.test_path, model, log_dir)
