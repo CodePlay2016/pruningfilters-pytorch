@@ -312,6 +312,9 @@ class Printer():
 	def log(self, mstr):
 		print(mstr)
 		if self.do_log:
+			log_path = os.path.join(self.log_dir,"log.txt")
+			if not os.path.exists(log_path):
+				os.system("touch "+log_path)
 			with open(os.path.join(self.log_dir,"log.txt"),"a") as f:
 				f.write(str(mstr)+"\n")
 
@@ -333,7 +336,7 @@ if __name__ == '__main__':
 	p.log(msg)
 	if args.log:
 		os.system("mkdir "+log_dir)
-		os.system("touch "+os.path.join(log_dir,"log.txt"))
+		
 	# p.log(str(model))
 
 	p.log("time is :"+time_info)
