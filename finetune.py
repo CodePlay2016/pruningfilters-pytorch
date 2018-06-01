@@ -74,13 +74,6 @@ class FilterPrunner:
 	def compute_rank(self, grad):
 		activation_index = len(self.activations) - self.grad_index - 1
 		activation = self.activations[activation_index]
-		# temp = torch.sum((activation * grad), dim = 0)
-		# print temp.size()
-		# temp = temp.sum(dim=2)
-		# print temp.size()
-		# temp = temp.sum(dim=3)
-		# print temp.size()
-		# temp = temp[0,:,0,0].data
 		values = \
 			torch.sum((activation * grad), dim = 0, keepdim=True).\
 				sum(dim=2,keepdim=True).sum(dim=3,keepdim=True)[0, :, 0, 0].data
@@ -282,6 +275,7 @@ class PrunningFineTuner_VGG16:
 			self.p.log("Prunning filters.. ")
 			model = self.model.cpu()
 			for layer_index, filter_index in prune_targets:
+				print layer_index
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
 
 			self.model = model.cuda()
