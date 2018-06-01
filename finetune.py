@@ -138,6 +138,7 @@ class PrunningFineTuner_VGG16:
 		self.model.train()
 		self.log_dir = log_dir
 		self.p = Printer(log_dir)
+		self.model_save_path = os.path.join(self.log_dir,"model")
 
 	def test(self):
 		self.model.eval()
@@ -206,10 +207,14 @@ class PrunningFineTuner_VGG16:
 			if best_acc < valid_acc:
 				best_acc = valid_acc
 				if save_highest:
-					torch.save(self.model, os.path.join(self.log_dir,"model"))
+					torch.save(self.model, self.model_save_path)
 				self.p.log("model resaved...")
 			self.p.log("train step time elaps: %.2fs, train_acc eval time elaps: %.2fs, total time elaps: %.2fs"%(
 				train_time, train_eval_time, time.time()-start))
+		if save_highest:
+			self.model = torch.load(self.model_save_path).cuda()
+		else:
+			torch.save(self.model, self.model_save_path)
 		self.test()
 		self.p.log("Finished fine tuning. best valid acc is %.4f"%best_acc)
 		
