@@ -1,5 +1,7 @@
 import torch
 import argparse
+from finetune import ModifiedVGG16Model
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_path", type=str, default="model")
