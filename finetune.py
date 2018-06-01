@@ -343,7 +343,7 @@ if __name__ == '__main__':
 	p = Printer(log_dir,args.log)
 	msg = "doing fine tuning(train)" if args.train else "doing pruning, using model "+args.model_path
 	p.log(msg)
-	p.log(str(model))
+	p.log(model)
 
 	p.log("time is :"+time_info)
 	fine_tuner = PrunningFineTuner_VGG16(args.train_path, args.test_path, model, log_dir)
@@ -356,3 +356,4 @@ if __name__ == '__main__':
 
 	elif args.prune:
 		model = fine_tuner.prune()
+		p.log(model)

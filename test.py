@@ -12,4 +12,4 @@ if __name__ == '__main__':
     args = get_args()
 
     model = torch.load(args.model_path).cuda()
-    print model.features
+    print model
