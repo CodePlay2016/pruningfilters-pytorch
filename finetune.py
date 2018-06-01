@@ -182,7 +182,7 @@ class PrunningFineTuner_VGG16:
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
 		valid_acc = float(correct) / total
-		self.p.log("\nvalid Accuracy :%.4f"%valid_acc)
+		self.p.log("valid Accuracy :%.4f"%valid_acc)
 		
 		self.model.train()
 		return valid_acc
@@ -196,7 +196,7 @@ class PrunningFineTuner_VGG16:
 
 		best_acc = 0
 		for i in range(epoches):
-			self.p.log("Epoch: %d"%i)
+			self.p.log("\nEpoch: %d"%i)
 			start = time.time()
 			self.train_epoch(optimizer)
 			train_time = time.time() - start
@@ -267,6 +267,7 @@ class PrunningFineTuner_VGG16:
 		self.p.log(r"Number of prunning iterations to reduce 67% filters is "+str(iterations))
 
 		for ii in range(iterations):
+			self.p.log("#"*80)
 			self.p.log("Prune iteration %d: "%ii)
 			self.p.log("Ranking filters.. ")
 			start = time.time()
@@ -282,16 +283,18 @@ class PrunningFineTuner_VGG16:
 			self.p.log("Prunning filters.. ")
 			start = time.time()
 			model = self.model.cpu()
+			self.p.log(prune_targets)
 			for layer_index, filter_index in prune_targets:
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
 			self.p.log("Pruning filter use time %.2fs"%(time.time()-start))
 			self.model = model.cuda()
 
 			message = "%.2f%s"%(100*float(self.total_num_filters()) / number_of_filters, "%")
-			self.p.log("Filters prunned"+str(message))
+			self.p.log("Filters left"+str(message))
 			self.test()
+			self.p.log("#"*80)
 			self.p.log("Fine tuning to recover from prunning iteration.")
-			optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
+			optimizer = optim.Adam(self.model.parameters(), lr=0.001)
 			self.train(optimizer, epoches = 10)
 
 
