@@ -147,44 +147,44 @@ class PrunningFineTuner_VGG16:
 			batch = batch.cuda()
 			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
-	 		correct += pred.cpu().eq(label).sum()
-	 		total += label.size(0)
-	 	
-	 	self.p.log("Test Accuracy :%.4f"% (float(correct) / total))
-	 	
-	 	self.model.train()
+			correct += pred.cpu().eq(label).sum()
+			total += label.size(0)
+		
+		self.p.log("Test Accuracy :%.4f"% (float(correct) / total))
+		
+		self.model.train()
 
 	def eval_train(self):
 		self.model.eval()
 		correct = 0
 		total = 0
 		for i, (batch, label) in enumerate(self.train_data_loader):
-			if i and i%100 == 0: print i,
+			if i and i%100 == 0: self.p.log(i),
 			batch = batch.cuda()
 			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
-	 		correct += pred.cpu().eq(label).sum()
-	 		total += label.size(0)
-	 	train_acc = float(correct) / total
-	 	self.p.log("\ntrain accuracy :%.4f"% train_acc)
-	 	
-	 	self.model.train()
+			correct += pred.cpu().eq(label).sum()
+			total += label.size(0)
+		train_acc = float(correct) / total
+		self.p.log("\ntrain accuracy :%.4f"% train_acc)
+		
+		self.model.train()
 
 	def valid_train(self):
 		self.model.eval()
 		correct = 0
 		total = 0
 		for i, (batch, label) in enumerate(self.valid_data_loader):
-			if i and i%10 == 0: print i,
+			if i and i%10 == 0: self.p.log(i),
 			batch = batch.cuda()
 			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
-	 		correct += pred.cpu().eq(label).sum()
-	 		total += label.size(0)
-	 	valid_acc = float(correct) / total
-	 	self.p.log("\nvalid Accuracy :%.4f"%valid_acc)
-	 	
-	 	self.model.train()
+			correct += pred.cpu().eq(label).sum()
+			total += label.size(0)
+		valid_acc = float(correct) / total
+		self.p.log("\nvalid Accuracy :%.4f"%valid_acc)
+		
+		self.model.train()
 		return valid_acc
 
 	def train(self, optimizer = None, epoches = 10):
