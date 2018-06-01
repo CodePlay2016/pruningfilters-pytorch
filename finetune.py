@@ -139,6 +139,7 @@ class PrunningFineTuner_VGG16:
 		self.log_dir = log_dir
 		self.p = Printer(log_dir)
 		self.model_save_path = os.path.join(self.log_dir,"model")
+		self.model_saved = False
 
 	def test(self):
 		self.model.eval()
@@ -208,10 +209,11 @@ class PrunningFineTuner_VGG16:
 				best_acc = valid_acc
 				if save_highest:
 					torch.save(self.model, self.model_save_path)
-				self.p.log("model resaved...")
+					self.model_saved = True
+					self.p.log("model resaved...")
 			self.p.log("train step time elaps: %.2fs, train_acc eval time elaps: %.2fs, total time elaps: %.2fs"%(
 				train_time, train_eval_time, time.time()-start))
-		if save_highest:
+		if save_highest and self.model_saved:
 			self.model = torch.load(self.model_save_path).cuda()
 		else:
 			torch.save(self.model, self.model_save_path)
@@ -285,7 +287,7 @@ class PrunningFineTuner_VGG16:
 			model = self.model.cpu()
 			self.p.log(prune_targets)
 			for layer_index, filter_index in prune_targets:
-				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
+				model = prune_vgg16_conv_layer(model, layer_index, filt	er_index)
 			self.p.log("Pruning filter use time %.2fs"%(time.time()-start))
 			self.model = model.cuda()
 
