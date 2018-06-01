@@ -314,6 +314,7 @@ class Printer():
 		if self.do_log:
 			log_path = os.path.join(self.log_dir,"log.txt")
 			if not os.path.exists(log_path):
+				os.system("mkdir "+self.log_dir)
 				os.system("touch "+log_path)
 			with open(os.path.join(self.log_dir,"log.txt"),"a") as f:
 				f.write(str(mstr)+"\n")
@@ -334,9 +335,6 @@ if __name__ == '__main__':
 	p = Printer(log_dir,args.log)
 	msg = "doing fine tuning(train)" if args.train else "doing pruning, using model "+args.model_path
 	p.log(msg)
-	if args.log:
-		os.system("mkdir "+log_dir)
-		
 	# p.log(str(model))
 
 	p.log("time is :"+time_info)
