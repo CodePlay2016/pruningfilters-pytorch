@@ -160,7 +160,6 @@ class PrunningFineTuner_VGG16:
 		correct = 0
 		total = 0
 		for i, (batch, label) in enumerate(self.train_data_loader):
-			if i and i%100 == 0: print log(i),
 			batch = batch.cuda()
 			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
@@ -176,7 +175,6 @@ class PrunningFineTuner_VGG16:
 		correct = 0
 		total = 0
 		for i, (batch, label) in enumerate(self.valid_data_loader):
-			if i and i%10 == 0: print log(i),
 			batch = batch.cuda()
 			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
