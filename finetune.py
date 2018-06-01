@@ -64,7 +64,8 @@ class FilterPrunner:
 		for layer, (name, module) in enumerate(self.model.features._modules.items()):
 		    x = module(x)
 		    if isinstance(module, torch.nn.modules.conv.Conv2d):
-                        x.register_hook(self.compute_rank)
+                        x.register_hook(self.compute_rank) # Now we need to somehow get both the gradients and the activations for convolutional layers.
+														   #  In PyTorch we can register a hook on the gradient computation, so a callback is called when they are ready:
                         self.activations.append(x)
                         self.activation_to_layer[activation_index] = layer
                         activation_index += 1
@@ -159,7 +160,7 @@ class PrunningFineTuner_VGG16:
 		correct = 0
 		total = 0
 		for i, (batch, label) in enumerate(self.train_data_loader):
-			if i and i%100 == 0: self.p.log(i),
+			if i and i%100 == 0: print log(i),
 			batch = batch.cuda()
 			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
@@ -175,7 +176,7 @@ class PrunningFineTuner_VGG16:
 		correct = 0
 		total = 0
 		for i, (batch, label) in enumerate(self.valid_data_loader):
-			if i and i%10 == 0: self.p.log(i),
+			if i and i%10 == 0: print log(i),
 			batch = batch.cuda()
 			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
@@ -187,27 +188,29 @@ class PrunningFineTuner_VGG16:
 		self.model.train()
 		return valid_acc
 
-	def train(self, optimizer = None, epoches = 10):
+	def train(self, optimizer = None, epoches = 10, save_highest=True,
+				eval_train_acc=False):
 		if optimizer is None:
 			optimizer = \
 				optim.Adam(model.classifier.parameters(), 
 					lr=0.0001)
 
 		best_acc = 0
-
 		for i in range(epoches):
 			self.p.log("Epoch: %d"%i)
 			start = time.time()
 			self.train_epoch(optimizer)
 			train_time = time.time() - start
-			self.eval_train()
+			if eval_train_acc:
+				self.eval_train()
 			train_eval_time = time.time() - start - train_time
 			valid_acc = self.valid_train()
 			if best_acc < valid_acc:
 				best_acc = valid_acc
-				torch.save(self.model, os.path.join(self.log_dir,"model"))
+				if save_highest:
+					torch.save(self.model, os.path.join(self.log_dir,"model"))
 				self.p.log("model resaved...")
-			self.p.log("train step time elaps: %.2f, train_acc eval time elaps: %.2f, total time elaps: %.2f"%(
+			self.p.log("train step time elaps: %.2fs, train_acc eval time elaps: %.2fs, total time elaps: %.2fs"%(
 				train_time, train_eval_time, time.time()-start))
 		self.test()
 		self.p.log("Finished fine tuning. best valid acc is %.4f"%best_acc)
@@ -257,39 +260,44 @@ class PrunningFineTuner_VGG16:
 		number_of_filters = self.total_num_filters()
 		num_filters_to_prune_per_iteration = 512
 		iterations = int(float(number_of_filters) / num_filters_to_prune_per_iteration)
-
 		iterations = int(iterations * 2.0 / 3)
+		self.p.log(r"Number of prunning iterations to reduce 67% filters is "+str(iterations))
 
-		self.p.log(r"Number of prunning iterations to reduce 67% filters "+str(iterations))
-
-		for _ in range(iterations):
+		for ii in range(iterations):
+			self.p.log("Prune iteration %d: "%ii)
 			self.p.log("Ranking filters.. ")
+			start = time.time()
 			prune_targets = self.get_candidates_to_prune(num_filters_to_prune_per_iteration)
 			layers_prunned = {}
 			for layer_index, filter_index in prune_targets:
 				if layer_index not in layers_prunned:
 					layers_prunned[layer_index] = 0
 				layers_prunned[layer_index] = layers_prunned[layer_index] + 1 
+			self.p.log("Ranking filter use time %.2fs"%(time.time()-start))
 
 			self.p.log("Layers that will be prunned :"+str(layers_prunned))
 			self.p.log("Prunning filters.. ")
+			start = time.time()
 			model = self.model.cpu()
 			for layer_index, filter_index in prune_targets:
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
-
+			self.p.log("Pruning filter use time %.2fs"%(time.time()-start))
 			self.model = model.cuda()
 
-			message = str(100*float(self.total_num_filters()) / number_of_filters) + "%"
+			message = "%.2f%"%(100*float(self.total_num_filters()) / number_of_filters)
 			self.p.log("Filters prunned"+str(message))
 			self.test()
 			self.p.log("Fine tuning to recover from prunning iteration.")
-			optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)
+			optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
 			self.train(optimizer, epoches = 10)
 
 
 		self.p.log("Finished. Going to fine tune the model a bit more")
-		self.train(optimizer, epoches = 15)
-		torch.save(model, "model_prunned")
+		self.train(optimizer, epoches = 10)
+		self.test()
+		self.model.eval()
+		torch.save(model, os.path.join(self.log_dir,"model_pruned"))
+		return self.model
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -335,7 +343,7 @@ if __name__ == '__main__':
 	p = Printer(log_dir,args.log)
 	msg = "doing fine tuning(train)" if args.train else "doing pruning, using model "+args.model_path
 	p.log(msg)
-	# p.log(str(model))
+	p.log(str(model))
 
 	p.log("time is :"+time_info)
 	fine_tuner = PrunningFineTuner_VGG16(args.train_path, args.test_path, model, log_dir)
@@ -347,4 +355,4 @@ if __name__ == '__main__':
 		# torch.save(model, log_dir+"model")
 
 	elif args.prune:
-		fine_tuner.prune()
+		model = fine_tuner.prune()
