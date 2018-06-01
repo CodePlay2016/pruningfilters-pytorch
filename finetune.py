@@ -284,7 +284,7 @@ class PrunningFineTuner_VGG16:
 			self.p.log("Pruning filter use time %.2fs"%(time.time()-start))
 			self.model = model.cuda()
 
-			message = "%.2f%"%(100*float(self.total_num_filters()) / number_of_filters)
+			message = "%.2f%s"%(100*float(self.total_num_filters()) / number_of_filters, "%")
 			self.p.log("Filters prunned"+str(message))
 			self.test()
 			self.p.log("Fine tuning to recover from prunning iteration.")
