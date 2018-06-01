@@ -329,7 +329,7 @@ if __name__ == '__main__':
 		if args.log:
 			log_dir = os.path.abspath("./log/prune-"+time_info+"/")
 	p = Printer(log_dir,args.log)
-	msg = "doing fine tuning(train)" if args.train else "doing pruning, using model "+model_path
+	msg = "doing fine tuning(train)" if args.train else "doing pruning, using model "+args.model_path
 	p.log(msg)
 	if args.log:
 		os.system("mkdir "+log_dir)
