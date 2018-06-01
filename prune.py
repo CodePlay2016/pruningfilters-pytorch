@@ -21,7 +21,7 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
 			next_name, next_conv = res
 			break
 		offset = offset + 1
-	print type(conv.bias)
+	
 	new_conv = \
 		torch.nn.Conv2d(in_channels = conv.in_channels, \
 			out_channels = conv.out_channels - 1,

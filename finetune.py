@@ -275,7 +275,6 @@ class PrunningFineTuner_VGG16:
 			self.p.log("Prunning filters.. ")
 			model = self.model.cpu()
 			for layer_index, filter_index in prune_targets:
-				print layer_index
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
 
 			self.model = model.cuda()
@@ -314,7 +313,7 @@ class Printer():
 		print(mstr)
 		if self.do_log:
 			with open(os.path.join(self.log_dir,"log.txt"),"a") as f:
-				f.write(mstr+"\n")
+				f.write(str(mstr)+"\n")
 
 if __name__ == '__main__':
 	args = get_args()
