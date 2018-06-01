@@ -29,8 +29,8 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
 			stride = conv.stride,
 			padding = conv.padding,
 			dilation = conv.dilation,
-			groups = conv.groups,
-			bias = conv.bias)
+			groups = conv.groups)#,
+			#bias = conv.bias)
 
 	old_weights = conv.weight.data.cpu().numpy()
 	new_weights = new_conv.weight.data.cpu().numpy()
