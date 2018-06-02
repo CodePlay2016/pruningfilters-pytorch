@@ -297,7 +297,7 @@ class PrunningFineTuner_VGG16:
 			self.p.log("#"*80)
 			self.p.log("Fine tuning to recover from prunning iteration.")
 			optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
-			self.train(optimizer, epoches = 10, eval_train_acc=True)
+			self.train(optimizer, epoches = 10)
 
 
 		self.p.log("Finished. Going to fine tune the model a bit more")
