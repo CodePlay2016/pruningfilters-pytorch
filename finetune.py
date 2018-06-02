@@ -188,12 +188,12 @@ class PrunningFineTuner_VGG16:
 		self.model.train()
 		return valid_acc
 
-	def train(self, optimizer = None, epoches = 10, save_highest=True,
-				eval_train_acc=False):
+	def train(self, optimizer = None, epoches = 10,
+				save_highest=True, eval_train_acc=False):
 		if optimizer is None:
 			optimizer = \
 				optim.Adam(model.classifier.parameters(), 
-					lr=0.001)
+					lr=0.0001)
 
 		best_acc = 0
 		for i in range(epoches):
@@ -296,7 +296,7 @@ class PrunningFineTuner_VGG16:
 			self.test()
 			self.p.log("#"*80)
 			self.p.log("Fine tuning to recover from prunning iteration.")
-			optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+			optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
 			self.train(optimizer, epoches = 10, eval_train_acc=True)
 
 
