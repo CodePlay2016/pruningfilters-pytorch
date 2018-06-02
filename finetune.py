@@ -145,14 +145,13 @@ class PrunningFineTuner_VGG16:
 		self.model.eval()
 		correct = 0
 		total = 0
-
 		for i, (batch, label) in enumerate(self.test_data_loader):
 			batch = batch.cuda()
 			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
-		
+		self.p.log("correct and total are %d %d"%(correct, total))
 		self.p.log("Test Accuracy :%.4f"% (float(correct) / total))
 		
 		self.model.train()
@@ -182,6 +181,7 @@ class PrunningFineTuner_VGG16:
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
+		self.p.log("correct and total are %d %d"%(correct, total))
 		valid_acc = float(correct) / total
 		self.p.log("valid Accuracy :%.4f"%valid_acc)
 		
@@ -297,7 +297,7 @@ class PrunningFineTuner_VGG16:
 			self.p.log("#"*80)
 			self.p.log("Fine tuning to recover from prunning iteration.")
 			optimizer = optim.Adam(self.model.parameters(), lr=0.001)
-			self.train(optimizer, epoches = 10)
+			self.train(optimizer, epoches = 10, eval_train_acc=True)
 
 
 		self.p.log("Finished. Going to fine tune the model a bit more")
