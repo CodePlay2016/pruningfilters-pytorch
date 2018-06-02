@@ -40,14 +40,10 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
 	if filter_index > conv.out_channels-1:
 		print(filter_index, layer_index)
 		print(model)
-	if filter_index == conv.out_channels-1:
-		new_weights[:-1,:,:,:] = old_weights[:filter_index-1,:,:,:]
-		bias[:-1] = bias_numpy[:filter_index-1]
-	elif filter_index < conv.out_channels-1:
-		new_weights[: filter_index, :, :, :] = old_weights[: filter_index, :, :, :] #(out_channels, in_channels, ksize,ksize)
-		new_weights[filter_index : , :, :, :] = old_weights[filter_index + 1 :, :, :, :]
-		bias[:filter_index] = bias_numpy[:filter_index]
-		bias[filter_index : ] = bias_numpy[filter_index + 1 :]
+	new_weights[: filter_index, :, :, :] = old_weights[: filter_index, :, :, :] #(out_channels, in_channels, ksize,ksize)
+	new_weights[filter_index : , :, :, :] = old_weights[filter_index + 1 :, :, :, :]
+	bias[:filter_index] = bias_numpy[:filter_index]
+	bias[filter_index : ] = bias_numpy[filter_index + 1 :]
 	new_conv.weight.data = torch.from_numpy(new_weights).cuda()
 	new_conv.bias.data = torch.from_numpy(bias).cuda()
 
@@ -66,11 +62,8 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
 		new_weights = next_new_conv.weight.data.cpu().numpy()
 
 		assert(filter_index <= next_conv.in_channels-1)
-		if filter_index == next_conv.in_channels-1:
-			new_weights[:,:-1,:,:] = old_weights[:,:filter_index-1,:,:]
-		elif filter_index < conv.out_channels-1:
-			new_weights[:, : filter_index, :, :] = old_weights[:, : filter_index, :, :]
-			new_weights[:, filter_index : , :, :] = old_weights[:, filter_index + 1 :, :, :]
+		new_weights[:, : filter_index, :, :] = old_weights[:, : filter_index, :, :]
+		new_weights[:, filter_index : , :, :] = old_weights[:, filter_index + 1 :, :, :]
 		next_new_conv.weight.data = torch.from_numpy(new_weights).cuda()
 
 		next_new_conv.bias.data = next_conv.bias.data
@@ -98,7 +91,7 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
 	 		layer_index = layer_index  + 1
 
 	 	if old_linear_layer is None:
-	 		raise BaseException("No linear laye found in classifier")
+	 		raise BaseException("No linear layer found in classifier")
 		params_per_input_channel = old_linear_layer.in_features / conv.out_channels
 
 	 	new_linear_layer = \
