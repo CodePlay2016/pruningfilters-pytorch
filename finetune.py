@@ -151,7 +151,6 @@ class PrunningFineTuner_VGG16:
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
-		self.p.log("correct and total are %d %d"%(correct, total))
 		self.p.log("Test Accuracy :%.4f"% (float(correct) / total))
 		
 		self.model.train()
@@ -181,7 +180,6 @@ class PrunningFineTuner_VGG16:
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
-		self.p.log("correct and total are %d %d"%(correct, total))
 		valid_acc = float(correct) / total
 		self.p.log("valid Accuracy :%.4f"%valid_acc)
 		
