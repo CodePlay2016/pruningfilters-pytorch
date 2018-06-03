@@ -147,7 +147,7 @@ class PrunningFineTuner_VGG16:
 		total = 0
 		for i, (batch, label) in enumerate(self.test_data_loader):
 			batch = batch.cuda()
-			output = self.model(Variable(batch))
+			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
@@ -161,7 +161,7 @@ class PrunningFineTuner_VGG16:
 		total = 0
 		for i, (batch, label) in enumerate(self.train_data_loader):
 			batch = batch.cuda()
-			output = self.model(Variable(batch))
+			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
@@ -176,7 +176,7 @@ class PrunningFineTuner_VGG16:
 		total = 0
 		for i, (batch, label) in enumerate(self.valid_data_loader):
 			batch = batch.cuda()
-			output = self.model(Variable(batch))
+			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
