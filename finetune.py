@@ -213,12 +213,13 @@ class PrunningFineTuner_VGG16:
 				train_time, train_eval_time, time.time()-start))
 		if save_highest and self.model_saved:
 			self.model = torch.load(self.model_save_path).cuda()
+			self.model_saved = False
 		else:
 			torch.save(self.model, self.model_save_path)
 		self.test()
 		self.p.log("Finished fine tuning. best valid acc is %.4f"%best_acc)
 		
-	
+	=
 	def train_batch(self, optimizer, batch, label, rank_filters):
 		self.model.zero_grad()
 		input = Variable(batch)
@@ -276,7 +277,7 @@ class PrunningFineTuner_VGG16:
 			for layer_index, filter_index in prune_targets:
 				if layer_index not in layers_prunned:
 					layers_prunned[layer_index] = 0
-				layers_prunned[layer_index] = layers_prunned[layer_index] + 1 
+				layers_prunned=[layer_index] = layers_prunned[layer_index] + 1 
 			self.p.log("Ranking filter use time %.2fs"%(time.time()-start))
 			self.p.log("Layers that will be prunned :"+str(layers_prunned))
 			self.p.log("Prunning filters.. ")
@@ -290,7 +291,7 @@ class PrunningFineTuner_VGG16:
 					filter_index -= channel_reduce
 					channel_reduce += 1
 				else:
-					 last_layer_index += 1
+					 last_layer_index = layer_index
 					 channel_reduce = 1
 				if ii == 2: print (layer_index, filter_index), 
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
