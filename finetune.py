@@ -254,7 +254,6 @@ class PrunningFineTuner_VGG16:
 	def prune(self):
 		#Get the accuracy before prunning
 		self.test()
-
 		self.model.train()
 
 		#Make sure all the layers are trainable
@@ -291,10 +290,11 @@ class PrunningFineTuner_VGG16:
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
 			self.p.log("Pruning filter use time %.2fs"%(time.time()-start))
 			self.model = model.cuda()
+			del model
 			message = "%.2f%s"%(100*float(self.total_num_filters()) / number_of_filters, "%")
 			self.p.log("Filters left"+str(message))
 			self.test()
-			
+
 			self.p.log("#"*80)
 			self.p.log("Fine tuning to recover from prunning iteration.")
 			optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
