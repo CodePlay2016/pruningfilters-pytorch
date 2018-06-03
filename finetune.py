@@ -276,7 +276,7 @@ class PrunningFineTuner_VGG16:
 			for layer_index, filter_index in prune_targets:
 				if layer_index not in layers_prunned:
 					layers_prunned[layer_index] = 0
-				layers_prunned=[layer_index] = layers_prunned[layer_index] + 1 
+				layers_prunned[layer_index] = layers_prunned[layer_index] + 1 
 			self.p.log("Ranking filter use time %.2fs"%(time.time()-start))
 			self.p.log("Layers that will be prunned :"+str(layers_prunned))
 			self.p.log("Prunning filters.. ")
