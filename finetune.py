@@ -134,7 +134,6 @@ class PrunningFineTuner_VGG16:
 		self.test_path = test_path
 		self.model = model
 		self.criterion = torch.nn.CrossEntropyLoss()
-		del self.prunner
 		self.prunner = FilterPrunner(self.model) 
 		self.model.train()
 		self.log_dir = log_dir
