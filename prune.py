@@ -37,13 +37,14 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
 	bias_numpy = conv.bias.data.cpu().numpy()
 	bias = np.zeros(shape = (bias_numpy.shape[0] - 1), dtype = np.float32)
 
-	if filter_index > conv.out_channels-1:
-		print(filter_index, layer_index)
+	try:
+		new_weights[: filter_index, :, :, :] = old_weights[: filter_index, :, :, :] #(out_channels, in_channels, ksize,ksize)
+		new_weights[filter_index : , :, :, :] = old_weights[filter_index + 1 :, :, :, :]
+		bias[:filter_index] = bias_numpy[:filter_index]
+		bias[filter_index : ] = bias_numpy[filter_index + 1 :]
+	except ValueError:
+		print(layer_index, filter_index)
 		print(model)
-	new_weights[: filter_index, :, :, :] = old_weights[: filter_index, :, :, :] #(out_channels, in_channels, ksize,ksize)
-	new_weights[filter_index : , :, :, :] = old_weights[filter_index + 1 :, :, :, :]
-	bias[:filter_index] = bias_numpy[:filter_index]
-	bias[filter_index : ] = bias_numpy[filter_index + 1 :]
 	new_conv.weight.data = torch.from_numpy(new_weights).cuda()
 	new_conv.bias.data = torch.from_numpy(bias).cuda()
 
