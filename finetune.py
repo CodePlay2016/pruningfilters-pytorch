@@ -218,7 +218,6 @@ class PrunningFineTuner_VGG16:
 			self.model_saved = False
 		else:
 			torch.save(self.model, self.model_save_path)
-		self.test()
 		self.p.log("Finished fine tuning. best valid acc is %.4f"%best_acc)
 		
 	def train_batch(self, optimizer, batch, label, rank_filters):
@@ -298,13 +297,14 @@ class PrunningFineTuner_VGG16:
 			del model
 			message = "%.2f%s"%(100*float(self.total_num_filters()) / number_of_filters, "%")
 			self.p.log("Filters left"+str(message))
-			self.set_grad_requirment(False)
 			self.test()
 
 			self.p.log("#"*80)
 			self.p.log("Fine tuning to recover from prunning iteration.")
 			optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
 			self.train(optimizer, epoches = 10)
+			self.set_grad_requirment(False)
+			self.test()
 
 
 		self.p.log("Finished. Going to fine tune the model a bit more")
