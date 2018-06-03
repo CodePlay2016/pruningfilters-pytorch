@@ -219,7 +219,6 @@ class PrunningFineTuner_VGG16:
 		self.test()
 		self.p.log("Finished fine tuning. best valid acc is %.4f"%best_acc)
 		
-	=
 	def train_batch(self, optimizer, batch, label, rank_filters):
 		self.model.zero_grad()
 		input = Variable(batch)
