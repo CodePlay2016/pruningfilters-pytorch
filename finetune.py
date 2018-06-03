@@ -272,6 +272,8 @@ class PrunningFineTuner_VGG16:
 			self.p.log("Prune iteration %d: "%ii)
 			self.p.log("Ranking filters.. ")
 			start = time.time()
+			# update model to the prunner
+			self.prunner = FilterPrunner(self.model)
 			prune_targets = self.get_candidates_to_prune(num_filters_to_prune_per_iteration)
 			layers_prunned = {}
 			for layer_index, filter_index in prune_targets:
@@ -285,23 +287,14 @@ class PrunningFineTuner_VGG16:
 			model = self.model.cpu()
 			self.p.log(prune_targets)
 			self.p.log(model)
-			last_layer_index = -1
-			channel_reduce = 1
-			for layer_index, filter_index in prune_targets:
-				# if layer_index == last_layer_index:
-				# 	filter_index -= channel_reduce
-				#	channel_reduce += 1
-				# else:
-				#	 last_layer_index = layer_index
-				#	 channel_reduce = 1
-				print (layer_index, filter_index), 
+			for layer_index, filter_index in prune_targets: 
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
 			self.p.log("Pruning filter use time %.2fs"%(time.time()-start))
 			self.model = model.cuda()
-
 			message = "%.2f%s"%(100*float(self.total_num_filters()) / number_of_filters, "%")
 			self.p.log("Filters left"+str(message))
 			self.test()
+			
 			self.p.log("#"*80)
 			self.p.log("Fine tuning to recover from prunning iteration.")
 			optimizer = optim.Adam(self.model.parameters(), lr=0.0001)

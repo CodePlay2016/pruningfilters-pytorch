@@ -69,46 +69,46 @@ def prune_vgg16_conv_layer(model, layer_index, filter_index):
 		next_new_conv.bias.data = next_conv.bias.data
 
 	if not next_conv is None:
-	 	features = torch.nn.Sequential(
+		features = torch.nn.Sequential(
 	            *(replace_layers(model.features, i, [layer_index, layer_index+offset], \
 	            	[new_conv, next_new_conv]) for i, _ in enumerate(model.features)))
-	 	del model.features
-	 	del conv
+		del model.features
+		del conv
 
-	 	model.features = features
+		model.features = features
 
 	else:
 		#Prunning the last conv layer. This affects the first linear layer of the classifier.
-	 	model.features = torch.nn.Sequential(
+		model.features = torch.nn.Sequential(
 	            *(replace_layers(model.features, i, [layer_index], \
 	            	[new_conv]) for i, _ in enumerate(model.features)))
-	 	layer_index = 0
-	 	old_linear_layer = None
-	 	for _, module in model.classifier._modules.items():
-	 		if isinstance(module, torch.nn.Linear):
-	 			old_linear_layer = module
-	 			break
-	 		layer_index = layer_index  + 1
+		layer_index = 0
+		old_linear_layer = None
+		for _, module in model.classifier._modules.items():
+			if isinstance(module, torch.nn.Linear):
+				old_linear_layer = module
+				break
+			layer_index = layer_index  + 1
 
-	 	if old_linear_layer is None:
-	 		raise BaseException("No linear layer found in classifier")
+		if old_linear_layer is None:
+			raise BaseException("No linear layer found in classifier")
 		params_per_input_channel = old_linear_layer.in_features / conv.out_channels
 
-	 	new_linear_layer = \
-	 		torch.nn.Linear(old_linear_layer.in_features - params_per_input_channel, 
-	 			old_linear_layer.out_features)
-	 	
-	 	old_weights = old_linear_layer.weight.data.cpu().numpy()
-	 	new_weights = new_linear_layer.weight.data.cpu().numpy()	 	
+		new_linear_layer = \
+			torch.nn.Linear(old_linear_layer.in_features - params_per_input_channel, 
+				old_linear_layer.out_features)
+		
+		old_weights = old_linear_layer.weight.data.cpu().numpy()
+		new_weights = new_linear_layer.weight.data.cpu().numpy()	 	
 
-	 	new_weights[:, : filter_index * params_per_input_channel] = \
-	 		old_weights[:, : filter_index * params_per_input_channel]
-	 	new_weights[:, filter_index * params_per_input_channel :] = \
-	 		old_weights[:, (filter_index + 1) * params_per_input_channel :]
-	 	
-	 	new_linear_layer.bias.data = old_linear_layer.bias.data
+		new_weights[:, : filter_index * params_per_input_channel] = \
+			old_weights[:, : filter_index * params_per_input_channel]
+		new_weights[:, filter_index * params_per_input_channel :] = \
+			old_weights[:, (filter_index + 1) * params_per_input_channel :]
+		
+		new_linear_layer.bias.data = old_linear_layer.bias.data
 
-	 	new_linear_layer.weight.data = torch.from_numpy(new_weights).cuda()
+		new_linear_layer.weight.data = torch.from_numpy(new_weights).cuda()
 
 		classifier = torch.nn.Sequential(
 			*(replace_layers(model.classifier, i, [layer_index], \
