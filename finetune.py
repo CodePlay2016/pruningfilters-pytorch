@@ -147,7 +147,7 @@ class PrunningFineTuner_VGG16:
 		total = 0
 		for i, (batch, label) in enumerate(self.test_data_loader):
 			batch = batch.cuda()
-			output = model(Variable(batch))
+			output = self.model(Variable(batch))
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
@@ -161,7 +161,7 @@ class PrunningFineTuner_VGG16:
 		total = 0
 		for i, (batch, label) in enumerate(self.train_data_loader):
 			batch = batch.cuda()
-			output = model(Variable(batch))
+			output = self.model(Variable(batch))
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
@@ -176,7 +176,7 @@ class PrunningFineTuner_VGG16:
 		total = 0
 		for i, (batch, label) in enumerate(self.valid_data_loader):
 			batch = batch.cuda()
-			output = model(Variable(batch))
+			output = self.model(Variable(batch))
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
@@ -190,7 +190,7 @@ class PrunningFineTuner_VGG16:
 				save_highest=True, eval_train_acc=False):
 		if optimizer is None:
 			optimizer = \
-				optim.Adam(model.classifier.parameters(), 
+				optim.Adam(self.model.classifier.parameters(), 
 					lr=0.0001)
 
 		best_acc = 0
@@ -212,6 +212,7 @@ class PrunningFineTuner_VGG16:
 			self.p.log("train step time elaps: %.2fs, train_acc eval time elaps: %.2fs, total time elaps: %.2fs"%(
 				train_time, train_eval_time, time.time()-start))
 		if save_highest and self.model_saved:
+			self.p.log("model reloaded...")
 			self.model = torch.load(self.model_save_path).cuda()
 			self.model_saved = False
 		else:
@@ -311,7 +312,7 @@ class PrunningFineTuner_VGG16:
 		self.train(optimizer, epoches = 10)
 		self.test()
 		self.model.eval()
-		torch.save(model, os.path.join(self.log_dir,"model_pruned"))
+		torch.save(self.model, os.path.join(self.log_dir,"model_pruned"))
 		return self.model
 
 def get_args():
