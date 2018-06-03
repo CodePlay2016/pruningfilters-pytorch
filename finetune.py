@@ -213,6 +213,7 @@ class PrunningFineTuner_VGG16:
 				train_time, train_eval_time, time.time()-start))
 		if save_highest and self.model_saved:
 			self.p.log("model reloaded...")
+			del self.model
 			self.model = torch.load(self.model_save_path).cuda()
 			self.model_saved = False
 		else:
@@ -251,14 +252,16 @@ class PrunningFineTuner_VGG16:
 				filters = filters + module.out_channels
 		return filters
 
+	def set_grad_requirment(self, status):
+		for param in self.model.features.parameters():
+			param.requires_grad = status
+
 	def prune(self):
 		#Get the accuracy before prunning
 		self.test()
 		self.model.train()
 
-		#Make sure all the layers are trainable
-		for param in self.model.features.parameters():
-			param.requires_grad = True
+		
 
 		number_of_filters = self.total_num_filters()
 		num_filters_to_prune_per_iteration = 512
@@ -273,6 +276,8 @@ class PrunningFineTuner_VGG16:
 			start = time.time()
 			# update model to the prunner
 			self.prunner = FilterPrunner(self.model)
+			#Make sure all the layers are trainable
+			self.set_grad_requirment(True)
 			prune_targets = self.get_candidates_to_prune(num_filters_to_prune_per_iteration)
 			layers_prunned = {}
 			for layer_index, filter_index in prune_targets:
@@ -293,6 +298,7 @@ class PrunningFineTuner_VGG16:
 			del model
 			message = "%.2f%s"%(100*float(self.total_num_filters()) / number_of_filters, "%")
 			self.p.log("Filters left"+str(message))
+			self.set_grad_requirment(False)
 			self.test()
 
 			self.p.log("#"*80)
