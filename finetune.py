@@ -283,15 +283,16 @@ class PrunningFineTuner_VGG16:
 			start = time.time()
 			model = self.model.cpu()
 			self.p.log(prune_targets)
+			self.p.log(model)
 			last_layer_index = -1
 			channel_reduce = 1
 			for layer_index, filter_index in prune_targets:
-				if layer_index == last_layer_index:
-					filter_index -= channel_reduce
-					channel_reduce += 1
-				else:
-					 last_layer_index = layer_index
-					 channel_reduce = 1
+				# if layer_index == last_layer_index:
+				# 	filter_index -= channel_reduce
+				#	channel_reduce += 1
+				# else:
+				#	 last_layer_index = layer_index
+				#	 channel_reduce = 1
 				print (layer_index, filter_index), 
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
 			self.p.log("Pruning filter use time %.2fs"%(time.time()-start))
