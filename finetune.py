@@ -292,6 +292,7 @@ class PrunningFineTuner_VGG16:
 				else:
 					 last_layer_index += 1
 					 channel_reduce = 1
+				if ii == 2: print(layer_index, filter_index)
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
 			self.p.log("Pruning filter use time %.2fs"%(time.time()-start))
 			self.model = model.cuda()
