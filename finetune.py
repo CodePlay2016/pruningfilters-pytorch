@@ -134,6 +134,7 @@ class PrunningFineTuner_VGG16:
 		self.test_path = test_path
 		self.model = model
 		self.criterion = torch.nn.CrossEntropyLoss()
+		del self.prunner
 		self.prunner = FilterPrunner(self.model) 
 		self.model.train()
 		self.log_dir = log_dir
@@ -147,10 +148,11 @@ class PrunningFineTuner_VGG16:
 		total = 0
 		for i, (batch, label) in enumerate(self.test_data_loader):
 			batch = batch.cuda()
-			output = model(Variable(batch))
+			output = self.model(Variable(batch))
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
+		del output
 		self.p.log("Test Accuracy :%.4f"% (float(correct) / total))
 		
 		self.model.train()
@@ -161,10 +163,11 @@ class PrunningFineTuner_VGG16:
 		total = 0
 		for i, (batch, label) in enumerate(self.train_data_loader):
 			batch = batch.cuda()
-			output = model(Variable(batch))
+			output = self.model(Variable(batch))
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
+		del output
 		train_acc = float(correct) / total
 		self.p.log("\ntrain accuracy :%.4f"% train_acc)
 		
@@ -176,7 +179,7 @@ class PrunningFineTuner_VGG16:
 		total = 0
 		for i, (batch, label) in enumerate(self.valid_data_loader):
 			batch = batch.cuda()
-			output = model(Variable(batch))
+			output = self.model(Variable(batch))
 			pred = output.data.max(1)[1]
 			correct += pred.cpu().eq(label).sum()
 			total += label.size(0)
@@ -254,13 +257,17 @@ class PrunningFineTuner_VGG16:
 	def set_grad_requirment(self, status):
 		for param in self.model.features.parameters():
 			param.requires_grad = status
+	
+	def get_cuda_memory(self):
+		command = "nvidia-smi -q -d Memory | grep -A4 GPU |grep Free"
+		res = os.popen(command).readlines()[0]
+		self.p.log(res)
+
 
 	def prune(self):
 		#Get the accuracy before prunning
 		self.test()
 		self.model.train()
-
-		
 
 		number_of_filters = self.total_num_filters()
 		num_filters_to_prune_per_iteration = 512
@@ -274,15 +281,19 @@ class PrunningFineTuner_VGG16:
 			self.p.log("Ranking filters.. ")
 			start = time.time()
 			# update model to the prunner
+			self.get_cuda_memory()
 			self.prunner = FilterPrunner(self.model)
+			self.get_cuda_memory()
 			#Make sure all the layers are trainable
 			self.set_grad_requirment(True)
 			prune_targets = self.get_candidates_to_prune(num_filters_to_prune_per_iteration)
+			self.get_cuda_memory()
 			layers_prunned = {}
 			for layer_index, filter_index in prune_targets:
 				if layer_index not in layers_prunned:
 					layers_prunned[layer_index] = 0
 				layers_prunned[layer_index] = layers_prunned[layer_index] + 1 
+			self.get_cuda_memory()
 			self.p.log("Ranking filter use time %.2fs"%(time.time()-start))
 			self.p.log("Layers that will be prunned :"+str(layers_prunned))
 			self.p.log("Prunning filters.. ")
@@ -292,12 +303,14 @@ class PrunningFineTuner_VGG16:
 			self.p.log(model)
 			for layer_index, filter_index in prune_targets: 
 				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
+			self.get_cuda_memory()
 			self.p.log("Pruning filter use time %.2fs"%(time.time()-start))
 			self.model = model.cuda()
 			del model
 			message = "%.2f%s"%(100*float(self.total_num_filters()) / number_of_filters, "%")
 			self.p.log("Filters left"+str(message))
 			self.test()
+			self.get_cuda_memory()
 
 			self.p.log("#"*80)
 			self.p.log("Fine tuning to recover from prunning iteration.")
