@@ -213,6 +213,7 @@ class PrunningFineTuner_VGG16:
 					self.p.log("model resaved...")
 			self.p.log("train step time elaps: %.2fs, train_acc eval time elaps: %.2fs, total time elaps: %.2fs"%(
 				train_time, train_eval_time, time.time()-start))
+			self.p.log("Fine tuning cuda memory is:"+self.get_cuda_memory())
 		if save_highest and self.model_saved:
 			self.p.log("model reloaded...")
 			del self.model
@@ -259,7 +260,7 @@ class PrunningFineTuner_VGG16:
 	
 	def get_cuda_memory(self):
 		command = "nvidia-smi -q -d Memory | grep -A4 GPU |grep Free"
-		res = os.popen(command).readlines()[0]
+		res = os.popen(command).readlines()[0][:-1]
 		self.p.log(res)
 
 
