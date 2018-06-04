@@ -80,26 +80,22 @@ class FilterPrunner:
         return self.model.classifier(x.view(x.size(0), -1))
 
     def compute_rank(self, grad):
-        activation_index = len(self.activations) - \
-            self.grad_index - 1  # calculate from the bottom
-        activation = self.activations[activation_index]
-        values = (activation*grad).cpu().data.numpy()
-        values = np.sum(values, axis=0).sum(axis=1).sum(axis=1)
-        # values = np.sum(values, axis=1)
-        # values = np.sum(values, axis=1)
-        activation.cuda()
+        activation_index = len(self.activations) - self.grad_index - 1
+		activation = self.activations[activation_index]
+		values = \
+			torch.sum((activation * grad), dim = 0).\
+				sum(dim=2).sum(dim=3)[0, :, 0, 0].data
+		
+		# Normalize the rank by the filter dimensions
+		values = \
+			values / (activation.size(0) * activation.size(2) * activation.size(3))
 
-        # Normalize the rank by the filter dimensions
-        values = \
-            values / (activation.size(0) * activation.size(2)
-                      * activation.size(3))
+		if activation_index not in self.filter_ranks:
+			self.filter_ranks[activation_index] = \
+				torch.FloatTensor(activation.size(1)).zero_().cuda()
 
-        if activation_index not in self.filter_ranks:
-            self.filter_ranks[activation_index] = \
-                torch.FloatTensor(activation.size(1)).zero_().cpu().numpy()
-
-        self.filter_ranks[activation_index] += values
-        self.grad_index += 1
+		self.filter_ranks[activation_index] += values
+		self.grad_index += 1
 
     def lowest_ranking_filters(self, num):
         data = []
@@ -112,9 +108,9 @@ class FilterPrunner:
 
     def normalize_ranks_per_layer(self):
         for i in self.filter_ranks:
-            v = np.abs(self.filter_ranks[i])
-            v = v / np.sqrt(np.sum(np.multiply(v, v)))
-            self.filter_ranks[i] = v
+			v = torch.abs(self.filter_ranks[i])
+			v = v / np.sqrt(torch.sum(v * v))
+			self.filter_ranks[i] = v.cpu()
 
     def get_prunning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
@@ -193,6 +189,7 @@ class PrunningFineTuner_VGG16:
         total = 0
         for i, (batch, label) in enumerate(self.valid_data_loader):
             batch = batch.cuda()
+            print self.model is model
             output = model(Variable(batch, volatile=True))
             pred = output.data.max(1)[1]
             correct += pred.cpu().eq(label).sum()
@@ -209,7 +206,6 @@ class PrunningFineTuner_VGG16:
             optimizer = \
                 optim.Adam(self.model.classifier.parameters(),
                            lr=0.0001)
-
         best_acc = 0
         for i in range(epoches):
             self.p.log("\nEpoch: %d" % i)
@@ -256,11 +252,8 @@ class PrunningFineTuner_VGG16:
 
     def get_candidates_to_prune(self, num_filters_to_prune):
         self.prunner.reset()
-
         self.train_epoch(rank_filters=True)
-
         self.prunner.normalize_ranks_per_layer()
-
         return self.prunner.get_prunning_plan(num_filters_to_prune)
 
     def total_num_filters(self):
@@ -301,7 +294,6 @@ class PrunningFineTuner_VGG16:
             self.p.log("Ranking filters.. ")
             start = time.time()
             # update model to the prunner
-            self.get_cuda_memory()
             self.prunner = FilterPrunner(self.model)
             self.get_cuda_memory()
             # Make sure all the layers are trainable
@@ -315,17 +307,16 @@ class PrunningFineTuner_VGG16:
                 if layer_index not in layers_prunned:
                     layers_prunned[layer_index] = 0
                 layers_prunned[layer_index] = layers_prunned[layer_index] + 1
-            self.get_cuda_memory()
             self.p.log("Ranking filter use time %.2fs" % (time.time()-start))
             self.p.log("Layers that will be prunned :"+str(layers_prunned))
             self.p.log("Prunning filters.. ")
             start = time.time()
             model = self.model.cpu()
             self.p.log(prune_targets)
-            self.p.log(model)
             for layer_index, filter_index in prune_targets:
                 model = prune_vgg16_conv_layer(
                     model, layer_index, filter_index)
+            self.p.log(model)
             self.get_cuda_memory()
             self.p.log("Pruning filter use time %.2fs" % (time.time()-start))
             self.model = model.cuda()
