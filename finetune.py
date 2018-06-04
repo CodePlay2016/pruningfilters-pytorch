@@ -48,6 +48,7 @@ class FilterPrunner:
     def __init__(self, model):
         self.model = model
         self.reset()
+        self.flag = True
 
     def reset(self):
         self.activations = []
@@ -82,7 +83,10 @@ class FilterPrunner:
         activation_index = len(self.activations) - \
             self.grad_index - 1  # calculate from the bottom
         activation = self.activations[activation_index]
-        print str(type(activation))+"-"+str(type(grad)),
+        if self.flag:
+            print(activation.data, grad.data)
+            print(activation.size(),grad.size())
+            self.flag = False
         values = \
             torch.sum((activation * grad), dim=0, keepdim=True).\
             sum(dim=2, keepdim=True).sum(dim=3, keepdim=True)[0, :, 0, 0].data
