@@ -81,8 +81,8 @@ class FilterPrunner:
     def compute_rank(self, grad):
         activation_index = len(self.activations) - \
             self.grad_index - 1  # calculate from the bottom
-        print str(type(activation))+"-"+str(type(grad)),
         activation = self.activations[activation_index]
+        print str(type(activation))+"-"+str(type(grad)),
         values = \
             torch.sum((activation * grad), dim=0, keepdim=True).\
             sum(dim=2, keepdim=True).sum(dim=3, keepdim=True)[0, :, 0, 0].data
