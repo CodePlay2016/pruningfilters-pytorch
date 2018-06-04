@@ -233,6 +233,7 @@ class PrunningFineTuner_VGG16:
 		else:
 			self.criterion(self.model(input), Variable(label)).backward()
 			optimizer.step()
+		del input
 
 	def train_epoch(self, optimizer = None, rank_filters = False):
 		for batch, label in self.train_data_loader:
@@ -261,7 +262,7 @@ class PrunningFineTuner_VGG16:
 	def get_cuda_memory(self):
 		command = "nvidia-smi -q -d Memory | grep -A4 GPU |grep Free"
 		res = os.popen(command).readlines()[0][:-1]
-		self.p.log(res)
+		self.p.log(res+str(sys.getsizeof(self.model))+"byte")
 		return res
 
 
