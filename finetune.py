@@ -262,7 +262,7 @@ class PrunningFineTuner_VGG16:
 	def get_cuda_memory(self):
 		command = "nvidia-smi -q -d Memory | grep -A4 GPU |grep Free"
 		res = os.popen(command).readlines()[0][:-1]
-		self.p.log(res+str(sys.getsizeof(self.model))+"byte")
+		self.p.log(res+"  ||  "+str(sys.getsizeof(self.model.parameters()))+"byte")
 		return res
 
 
