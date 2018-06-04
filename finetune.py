@@ -243,7 +243,7 @@ class PrunningFineTuner_VGG16:
         input = Variable(batch)
         if rank_filters:
             output = self.prunner.forward(input)  # 1800MB -> 3700MB
-            self.criterion(Variable(output), Variable(label)
+            self.criterion(output, Variable(label)
                            ).backward()  # 3700MB -> 7000MB
         else:
             self.criterion(self.model(input), Variable(label)).backward()
