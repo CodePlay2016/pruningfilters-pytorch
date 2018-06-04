@@ -83,7 +83,9 @@ class FilterPrunner:
         activation_index = len(self.activations) - \
             self.grad_index - 1  # calculate from the bottom
         activation = self.activations[activation_index]
-        values = np.sum(np.multiply(activation.data,grad.data), axis=0).sum(axis=1).sum(axis=1)
+        print str(type(activation.data))
+        values = np.multiply(activation.data,grad.data)
+        values = np.sum(values, axis=0).sum(axis=1).sum(axis=1)
         # values = np.sum(values, axis=1)
         # values = np.sum(values, axis=1)
 
