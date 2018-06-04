@@ -96,7 +96,7 @@ class FilterPrunner:
 
         if activation_index not in self.filter_ranks:
             self.filter_ranks[activation_index] = \
-                torch.FloatTensor(activation.size(1)).size(1).zero_().cpu().numpy()
+                torch.FloatTensor(activation.size(1)).zero_().cpu().numpy()
 
         self.filter_ranks[activation_index] += values
         self.grad_index += 1
