@@ -3,7 +3,7 @@ from torch.autograd import Variable
 from torchvision import models
 import cv2
 import sys
-import os
+import os,gc
 import numpy as np
 import torchvision
 import torch.nn as nn
@@ -301,7 +301,8 @@ class PrunningFineTuner_VGG16:
             self.set_grad_requirment(True)
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
-            del self.prunner, self.model
+            del self.prunner
+            gc.collect()
             self.get_cuda_memory()
             layers_prunned = {}
             for layer_index, filter_index in prune_targets:
