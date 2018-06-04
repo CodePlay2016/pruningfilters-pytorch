@@ -87,6 +87,7 @@ class FilterPrunner:
         values = np.sum(values, axis=0).sum(axis=1).sum(axis=1)
         # values = np.sum(values, axis=1)
         # values = np.sum(values, axis=1)
+        activation.cuda()
 
         # Normalize the rank by the filter dimensions
         values = \
@@ -242,7 +243,7 @@ class PrunningFineTuner_VGG16:
         input = Variable(batch)
         if rank_filters:
             output = self.prunner.forward(input)  # 1800MB -> 3700MB
-            self.criterion(output, Variable(label)
+            self.criterion(Variable(output), Variable(label)
                            ).backward()  # 3700MB -> 7000MB
         else:
             self.criterion(self.model(input), Variable(label)).backward()
