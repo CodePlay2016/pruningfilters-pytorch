@@ -185,7 +185,7 @@ class PrunningFineTuner_VGG16:
         total = 0
         for i, (batch, label) in enumerate(self.valid_data_loader):
             batch = batch.cuda()
-            output = self.model(Variable(batch, volatile=True))
+            output = model(Variable(batch, volatile=True))
             pred = output.data.max(1)[1]
             correct += pred.cpu().eq(label).sum()
             total += label.size(0)
@@ -301,7 +301,7 @@ class PrunningFineTuner_VGG16:
             self.set_grad_requirment(True)
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
-            del self.prunner
+            del self.prunner, self.model
             self.get_cuda_memory()
             layers_prunned = {}
             for layer_index, filter_index in prune_targets:
