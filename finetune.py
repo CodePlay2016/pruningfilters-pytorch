@@ -50,25 +50,23 @@ class FilterPrunner:
         self.reset()
 
     def reset(self):
-        # self.activations = []
-        # self.gradients = []
-        # self.grad_index = 0
-        # self.activation_to_layer = {}
+        self.activations = []
+        self.gradients = []
+        self.grad_index = 0
+        self.activation_to_layer = {}
         self.filter_ranks = {}
 
     def forward(self, x):
         self.activations = []
         self.gradients = []
-        self.grad_index = 0
+        self.grad_index = 0  # index of the layer
         self.activation_to_layer = {}
 
         activation_index = 0
         for layer, (name, module) in enumerate(self.model.features._modules.items()):
             x = module(x)
             if isinstance(module, torch.nn.modules.conv.Conv2d):
-                # Now we need to somehow get both the gradients and the activations for convolutional layers.
                 x.register_hook(self.compute_rank)
-                #  In PyTorch we can register a hook on the gradient computation, so a callback is called when they are ready:
                 self.activations.append(x)
                 self.activation_to_layer[activation_index] = layer
                 activation_index += 1
@@ -76,7 +74,8 @@ class FilterPrunner:
         return self.model.classifier(x.view(x.size(0), -1))
 
     def compute_rank(self, grad):
-        activation_index = len(self.activations) - self.grad_index - 1
+        activation_index = len(self.activations) - \
+            self.grad_index - 1  # calculate from the bottom
         activation = self.activations[activation_index]
         values = \
             torch.sum((activation * grad), dim=0, keepdim=True).\
@@ -234,12 +233,10 @@ class PrunningFineTuner_VGG16:
     def train_batch(self, optimizer, batch, label, rank_filters):
         self.model.zero_grad()
         input = Variable(batch)
-
         if rank_filters:
-            output = self.prunner.forward(input)  # 1800MB -> 3700MB
-            self.criterion(output, Variable(label)
+            # output = self.prunner.forward(input)  # 1800MB -> 3700MB
+            self.criterion(self.prunner.forward(input), Variable(label)
                            ).backward()  # 3700MB -> 7000MB
-            del output
         else:
             self.criterion(self.model(input), Variable(label)).backward()
             optimizer.step()
@@ -304,6 +301,7 @@ class PrunningFineTuner_VGG16:
             self.set_grad_requirment(True)
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
+            self.prunner.reset()
             self.get_cuda_memory()
             layers_prunned = {}
             for layer_index, filter_index in prune_targets:
