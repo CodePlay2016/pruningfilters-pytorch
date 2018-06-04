@@ -62,13 +62,13 @@ class FilterPrunner:
 
 		activation_index = 0
 		for layer, (name, module) in enumerate(self.model.features._modules.items()):
-		    x = module(x)
-		    if isinstance(module, torch.nn.modules.conv.Conv2d):
-                        x.register_hook(self.compute_rank) # Now we need to somehow get both the gradients and the activations for convolutional layers.
-														   #  In PyTorch we can register a hook on the gradient computation, so a callback is called when they are ready:
-                        self.activations.append(x)
-                        self.activation_to_layer[activation_index] = layer
-                        activation_index += 1
+			x = module(x)
+			if isinstance(module, torch.nn.modules.conv.Conv2d):
+				x.register_hook(self.compute_rank) # Now we need to somehow get both the gradients and the activations for convolutional layers.
+												   #  In PyTorch we can register a hook on the gradient computation, so a callback is called when they are ready:
+				self.activations.append(x)
+				self.activation_to_layer[activation_index] = layer
+				activation_index += 1
 
 		return self.model.classifier(x.view(x.size(0), -1))
 
@@ -338,9 +338,9 @@ def get_args():
     parser.add_argument("--no-log", dest="log", action="store_false")
     parser.add_argument("--train_path", type = str, default = "train")
     parser.add_argument("--test_path", type = str, default = "test")
-    parser.add_argument("--model_path", type = str, default = "model")
+    parser.add_argument("--model_path", type = str, default = ".log/2018-05-30_191657/model")
     parser.set_defaults(train=False)
-    parser.set_defaults(prune=False)
+    parser.set_defaults(prune=True)
     parser.set_defaults(log=True)
     args = parser.parse_args()
     return args
