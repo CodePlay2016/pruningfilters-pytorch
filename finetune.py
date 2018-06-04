@@ -154,7 +154,7 @@ class PrunningFineTuner_VGG16:
         total = 0
         for i, (batch, label) in enumerate(self.test_data_loader):
             batch = batch.cuda()
-            output = self.model(Variable(batch))
+            output = self.model(Variable(batch, volatile=True))
             pred = output.data.max(1)[1]
             correct += pred.cpu().eq(label).sum()
             total += label.size(0)
@@ -169,7 +169,7 @@ class PrunningFineTuner_VGG16:
         total = 0
         for i, (batch, label) in enumerate(self.train_data_loader):
             batch = batch.cuda()
-            output = self.model(Variable(batch))
+            output = self.model(Variable(batch, volatile=True))
             pred = output.data.max(1)[1]
             correct += pred.cpu().eq(label).sum()
             total += label.size(0)
@@ -185,7 +185,7 @@ class PrunningFineTuner_VGG16:
         total = 0
         for i, (batch, label) in enumerate(self.valid_data_loader):
             batch = batch.cuda()
-            output = self.model(Variable(batch))
+            output = self.model(Variable(batch, volatile=True))
             pred = output.data.max(1)[1]
             correct += pred.cpu().eq(label).sum()
             total += label.size(0)
@@ -352,6 +352,7 @@ def get_args():
     parser.add_argument("--test_path", type=str, default="test")
     parser.add_argument("--model_path", type=str,
                         default="./log/2018-05-30_191657/model")
+    parser.add_argument("--device_id", type=int, default=0)
     parser.set_defaults(train=False)
     parser.set_defaults(prune=True)
     parser.set_defaults(log=True)
@@ -378,6 +379,7 @@ class Printer():
 if __name__ == '__main__':
     args = get_args()
 
+    torch.cuda.set_device(args.device_id)
     time_info = time.strftime('%Y-%m-%d_%H%M%S', time.localtime(time.time()))
     log_dir = os.path.abspath("./log/")
     if args.train:
