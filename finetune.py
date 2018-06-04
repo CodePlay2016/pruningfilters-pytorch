@@ -94,9 +94,11 @@ class FilterPrunner:
             values / (activation.size(0) * activation.size(2)
                       * activation.size(3))
 
+        print type(activation.size(1))
+        print activation.size(1).zero_()
         if activation_index not in self.filter_ranks:
             self.filter_ranks[activation_index] = \
-                torch.FloatTensor(activation.size(1)).zero_().cuda()
+                (activation.size(1)).zero_().cuda()
 
         self.filter_ranks[activation_index] += values
         self.grad_index += 1
@@ -243,8 +245,7 @@ class PrunningFineTuner_VGG16:
         input = Variable(batch)
         if rank_filters:
             output = self.prunner.forward(input)  # 1800MB -> 3700MB
-            self.criterion(output, Variable(label)
-                           ).backward()  # 3700MB -> 7000MB
+            self.criterion(output, Variable(label)).backward()  # 3700MB -> 7000MB
         else:
             self.criterion(self.model(input), Variable(label)).backward()
             optimizer.step()
