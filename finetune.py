@@ -301,7 +301,7 @@ class PrunningFineTuner_VGG16:
             self.set_grad_requirment(True)
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
-            self.prunner.reset()
+            del self.prunner
             self.get_cuda_memory()
             layers_prunned = {}
             for layer_index, filter_index in prune_targets:
