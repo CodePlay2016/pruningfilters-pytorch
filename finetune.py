@@ -104,7 +104,7 @@ class FilterPrunner:
     def lowest_ranking_filters(self, num):
         data = []
         for i in sorted(self.filter_ranks.keys()):
-            for j in range(self.filter_ranks[i].size(0)):
+            for j in range(self.filter_ranks[i].size):
                 data.append(
                     (self.activation_to_layer[i], j, self.filter_ranks[i][j]))
 
