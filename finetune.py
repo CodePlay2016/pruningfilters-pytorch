@@ -135,7 +135,7 @@ class FilterPrunner:
 
 
 class PrunningFineTuner_VGG16:
-    def __init__(self, train_path, test_path, model, log_dir=None):
+    def __init__(self, train_path, test_path, model, log_dir=None, device_id=0):
         self.train_data_loader, self.valid_data_loader, self.test_data_loader\
             = dataset.train_valid_test_loader(train_path)
         self.test_path = test_path
@@ -147,6 +147,7 @@ class PrunningFineTuner_VGG16:
         self.p = Printer(log_dir)
         self.model_save_path = os.path.join(self.log_dir, "model")
         self.model_saved = False
+        self.device_id = device_id
 
     def test(self):
         self.model.eval()
@@ -235,8 +236,10 @@ class PrunningFineTuner_VGG16:
         input = Variable(batch)
 
         if rank_filters:
-            output = self.prunner.forward(input)
-            self.criterion(output, Variable(label)).backward()
+            output = self.prunner.forward(input)  # 1800MB -> 3700MB
+            self.criterion(output, Variable(label)
+                           ).backward()  # 3700MB -> 7000MB
+            del output
         else:
             self.criterion(self.model(input), Variable(label)).backward()
             optimizer.step()
@@ -269,7 +272,7 @@ class PrunningFineTuner_VGG16:
 
     def get_cuda_memory(self):
         command = "nvidia-smi -q -d Memory | grep -A4 GPU |grep Free"
-        res = os.popen(command).readlines()[0][:-1]
+        res = os.popen(command).readlines()[self.device_id][:-1]
         res += "  ||  number of params in model is "+str(
             sum(param.numel() for param in model.parameters()))
         self.p.log(res)
@@ -398,7 +401,7 @@ if __name__ == '__main__':
 
     p.log("time is :"+time_info)
     fine_tuner = PrunningFineTuner_VGG16(
-        args.train_path, args.test_path, model, log_dir)
+        args.train_path, args.test_path, model, log_dir, args.device_id)
     if args.train:
         p.log("begin training...")
         fine_tuner.train(epoches=20)
