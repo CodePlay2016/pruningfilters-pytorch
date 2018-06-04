@@ -112,9 +112,9 @@ class FilterPrunner:
 
     def normalize_ranks_per_layer(self):
         for i in self.filter_ranks:
-            v = torch.abs(self.filter_ranks[i])
-            v = v / np.sqrt(torch.sum(v * v))
-            self.filter_ranks[i] = v.cpu()
+            v = np.abs(self.filter_ranks[i])
+            v = v / np.sqrt(np.sum(np.multiply(v, v)))
+            self.filter_ranks[i] = v
 
     def get_prunning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
