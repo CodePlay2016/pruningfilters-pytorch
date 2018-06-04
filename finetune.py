@@ -262,8 +262,9 @@ class PrunningFineTuner_VGG16:
 	def get_cuda_memory(self):
 		command = "nvidia-smi -q -d Memory | grep -A4 GPU |grep Free"
 		res = os.popen(command).readlines()[0][:-1]
-		self.p.log(res+"  ||  number of params in model is "+str(
-			sum(param.numel() for param in model.parameters())))
+		res += "  ||  number of params in model is "+str(
+			sum(param.numel() for param in model.parameters()))
+		self.p.log(res)
 		return res
 
 
