@@ -55,6 +55,11 @@ class FilterPrunner:
         self.grad_index = 0
         self.activation_to_layer = {}
         self.filter_ranks = {}
+    
+    def clean(self):
+        for activation in self.activations:
+            del activation
+            gc.collect()
 
     def forward(self, x):
         self.activations = []
@@ -234,8 +239,8 @@ class PrunningFineTuner_VGG16:
         self.model.zero_grad()
         input = Variable(batch)
         if rank_filters:
-            # output = self.prunner.forward(input)  # 1800MB -> 3700MB
-            self.criterion(self.prunner.forward(input), Variable(label)
+            output = self.prunner.forward(input)  # 1800MB -> 3700MB
+            self.criterion(output, Variable(label)
                            ).backward()  # 3700MB -> 7000MB
         else:
             self.criterion(self.model(input), Variable(label)).backward()
@@ -301,8 +306,7 @@ class PrunningFineTuner_VGG16:
             self.set_grad_requirment(True)
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
-            del self.prunner
-            gc.collect()
+            self.prunner.clean()
             self.get_cuda_memory()
             layers_prunned = {}
             for layer_index, filter_index in prune_targets:
