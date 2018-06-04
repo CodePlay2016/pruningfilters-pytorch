@@ -94,11 +94,9 @@ class FilterPrunner:
             values / (activation.size(0) * activation.size(2)
                       * activation.size(3))
 
-        print type(activation.size(1))
-        print torch.FloatTensor(activation.size(1)).zero_()
         if activation_index not in self.filter_ranks:
             self.filter_ranks[activation_index] = \
-                activation.size(1).zero_().cuda()
+                torch.FloatTensor(activation.size(1)).size(1).zero_().cpu().numpy()
 
         self.filter_ranks[activation_index] += values
         self.grad_index += 1
