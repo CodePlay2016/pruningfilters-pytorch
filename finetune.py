@@ -81,21 +81,21 @@ class FilterPrunner:
 
     def compute_rank(self, grad):
         activation_index = len(self.activations) - self.grad_index - 1
-		activation = self.activations[activation_index]
-		values = \
-			torch.sum((activation * grad), dim = 0).\
-				sum(dim=2).sum(dim=3)[0, :, 0, 0].data
-		
-		# Normalize the rank by the filter dimensions
-		values = \
-			values / (activation.size(0) * activation.size(2) * activation.size(3))
+        activation = self.activations[activation_index]
+        values = \
+                torch.sum((activation * grad), dim = 0).\
+                    sum(dim=2).sum(dim=3)[0, :, 0, 0].data
 
-		if activation_index not in self.filter_ranks:
-			self.filter_ranks[activation_index] = \
-				torch.FloatTensor(activation.size(1)).zero_().cuda()
+        # Normalize the rank by the filter dimensions
+        values = \
+            values / (activation.size(0) * activation.size(2) * activation.size(3))
 
-		self.filter_ranks[activation_index] += values
-		self.grad_index += 1
+        if activation_index not in self.filter_ranks:
+            self.filter_ranks[activation_index] = \
+                torch.FloatTensor(activation.size(1)).zero_().cuda()
+
+        self.filter_ranks[activation_index] += values
+        self.grad_index += 1
 
     def lowest_ranking_filters(self, num):
         data = []
@@ -108,9 +108,9 @@ class FilterPrunner:
 
     def normalize_ranks_per_layer(self):
         for i in self.filter_ranks:
-			v = torch.abs(self.filter_ranks[i])
-			v = v / np.sqrt(torch.sum(v * v))
-			self.filter_ranks[i] = v.cpu()
+            v = torch.abs(self.filter_ranks[i])
+            v = v / np.sqrt(torch.sum(v * v))
+            self.filter_ranks[i] = v.cpu()
 
     def get_prunning_plan(self, num_filters_to_prune):
         filters_to_prune = self.lowest_ranking_filters(num_filters_to_prune)
