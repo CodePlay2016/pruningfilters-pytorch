@@ -237,6 +237,8 @@ class PrunningFineTuner_VGG16:
         self.model.zero_grad()
         input = Variable(batch)
         if rank_filters:
+            if optimizer is None:
+                optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
             output = self.prunner.forward(input)  # 1800MB -> 3300MB
             output = self.criterion(output, Variable(label))  
             output.backward() # 3300MB -> 7000MB
@@ -336,6 +338,7 @@ class PrunningFineTuner_VGG16:
 
         self.p.log("#"*80)
         self.p.log("Finished. Going to fine tune the model a bit more")
+        self.set_grad_requirment(True)
         self.train(optimizer, epoches=10)
         self.test()
         self.model.eval()
