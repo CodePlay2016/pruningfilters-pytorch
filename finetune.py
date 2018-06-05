@@ -59,7 +59,7 @@ class FilterPrunner:
     
     def clean(self):
         for activation in self.activations:
-            del activation
+            activation.data = None
             gc.collect()
 
     def forward(self, x):
@@ -211,7 +211,8 @@ class PrunningFineTuner_VGG16:
         for i in range(epoches):
             self.p.log("\nEpoch: %d" % i)
             start = time.time()
-            self.train_epoch(optimizer)
+            retain_graph = False if i == epoches-1 else True
+            self.train_epoch(optimizer, retain_graph)
             train_time = time.time() - start
             if eval_train_acc:
                 self.eval_train()
@@ -225,7 +226,7 @@ class PrunningFineTuner_VGG16:
                     self.p.log("model resaved...")
             self.p.log("train step time elaps: %.2fs, train_acc eval time elaps: %.2fs, total time elaps: %.2fs" % (
                 train_time, train_eval_time, time.time()-start))
-            self.p.log("Fine tuning cuda memory is:"+self.get_cuda_memory())
+            self.get_cuda_memory("Fine tuning cuda memory is:")
         if save_highest and self.model_saved:
             self.p.log("model reloaded...")
             del self.model
@@ -233,17 +234,17 @@ class PrunningFineTuner_VGG16:
             self.model_saved = False
         else:
             torch.save(self.model, self.model_save_path)
+        self.model.zero_grad()
         self.p.log("Finished fine tuning. best valid acc is %.4f" % best_acc)
 
-    def train_batch(self, optimizer, batch, label, rank_filters):
+    def train_batch(self, optimizer, batch, label, rank_filters, retain_graph):
         self.model.zero_grad()
         input = Variable(batch)
         self.get_cuda_memory("before train batch: ")
         if rank_filters:
-            output = self.prunner.forward(input)  # 1800MB -> 3700MB
-            output = self.criterion(output, Variable(label))  # 3700MB -> 7000MB
-            self.get_cuda_memory("before backward: ")
-            output.backward()
+            output = self.prunner.forward(input)  # 1800MB -> 3300MB
+            output = self.criterion(output, Variable(label))  
+            output.backward(retain_graph=retain_graph) # 3300MB -> 7000MB
         else:
             output=self.criterion(self.model(input), Variable(label))
             self.get_cuda_memory("before backward: ")
@@ -251,14 +252,14 @@ class PrunningFineTuner_VGG16:
             optimizer.step()
         self.get_cuda_memory("after train batch: ")
 
-    def train_epoch(self, optimizer=None, rank_filters=False):
+    def train_epoch(self, retain_graph, optimizer=None, rank_filters=False):
         for batch, label in self.train_data_loader:
             self.train_batch(optimizer, batch.cuda(),
-                             label.cuda(), rank_filters)
+                             label.cuda(), rank_filters, retain_graph)
 
     def get_candidates_to_prune(self, num_filters_to_prune):
         self.prunner.reset()
-        self.train_epoch(rank_filters=True)
+        self.train_epoch(rank_filters=True, retain_graph=False)
         self.prunner.normalize_ranks_per_layer()
         return self.prunner.get_prunning_plan(num_filters_to_prune)
 
