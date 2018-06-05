@@ -57,11 +57,6 @@ class FilterPrunner:
         self.activation_to_layer = {}
         self.filter_ranks = {}
     
-    def clean(self):
-        for activation in self.activations:
-            activation.data = torch.Tensor([])
-            gc.collect()
-
     def forward(self, x):
         self.activations = []
         self.gradients = []
@@ -245,6 +240,8 @@ class PrunningFineTuner_VGG16:
             output = self.prunner.forward(input)  # 1800MB -> 3300MB
             output = self.criterion(output, Variable(label))  
             output.backward() # 3300MB -> 7000MB
+            optimizer.zero_grad()
+            optimizer.step()
         else:
             output=self.criterion(self.model(input), Variable(label))
             output.backward()
@@ -303,9 +300,9 @@ class PrunningFineTuner_VGG16:
             self.get_cuda_memory()
             # Make sure all the layers are trainable
             self.set_grad_requirment(True)
+
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
-            # self.prunner.clean()
             self.get_cuda_memory()
             layers_prunned = {}
             for layer_index, filter_index in prune_targets:
