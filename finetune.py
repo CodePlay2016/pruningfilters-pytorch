@@ -73,7 +73,7 @@ class FilterPrunner:
             x = module(x)
             if isinstance(module, torch.nn.modules.conv.Conv2d):
                 x.register_hook(self.compute_rank)
-                self.activations.append(x)
+                self.activations.append(x.data)
                 self.activation_to_layer[activation_index] = layer
                 activation_index += 1
 
@@ -82,9 +82,10 @@ class FilterPrunner:
     def compute_rank(self, grad):
         activation_index = len(self.activations) - self.grad_index - 1
         activation = self.activations[activation_index]
+        grad = grad.data
         values = \
                 torch.sum((activation * grad), dim = 0).\
-                    sum(dim=1).sum(dim=1).data
+                    sum(dim=1).sum(dim=1)#.data
 
         # Normalize the rank by the filter dimensions
         values = \
@@ -212,7 +213,7 @@ class PrunningFineTuner_VGG16:
             self.p.log("\nEpoch: %d" % i)
             start = time.time()
             retain_graph = False if i == epoches-1 else True
-            self.train_epoch(optimizer, retain_graph)
+            self.train_epoch(optimizer=optimizer, retain_graph=retain_graph)
             train_time = time.time() - start
             if eval_train_acc:
                 self.eval_train()
