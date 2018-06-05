@@ -331,7 +331,7 @@ class PrunningFineTuner_VGG16:
             self.p.log("Fine tuning to recover from prunning iteration.")
             optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
             self.get_cuda_memory("after optimizer")
-            self.train(optimizer, epoches=5)
+            self.train(optimizer, epoches=2)
             self.set_grad_requirment(False)
             self.test()
 
