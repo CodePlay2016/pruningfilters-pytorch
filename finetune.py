@@ -241,9 +241,13 @@ class PrunningFineTuner_VGG16:
         self.get_cuda_memory("before train batch: ")
         if rank_filters:
             output = self.prunner.forward(input)  # 1800MB -> 3700MB
-            self.criterion(output, Variable(label)).backward()  # 3700MB -> 7000MB
+            output = self.criterion(output, Variable(label))  # 3700MB -> 7000MB
+            self.get_cuda_memory("before backward: ")
+            output.backward()
         else:
-            self.criterion(self.model(input), Variable(label)).backward()
+            output=self.criterion(self.model(input), Variable(label))
+            self.get_cuda_memory("before backward: ")
+            output.backward()
             optimizer.step()
         self.get_cuda_memory("after train batch: ")
 
