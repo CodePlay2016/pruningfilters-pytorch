@@ -337,6 +337,7 @@ class PrunningFineTuner_VGG16:
             self.set_grad_requirment(False)
             self.test()
 
+        self.p.log("#"*80)
         self.p.log("Finished. Going to fine tune the model a bit more")
         self.train(optimizer, epoches=10)
         self.test()
