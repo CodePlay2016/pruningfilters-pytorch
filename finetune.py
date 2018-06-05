@@ -212,8 +212,7 @@ class PrunningFineTuner_VGG16:
         for i in range(epoches):
             self.p.log("\nEpoch: %d" % i)
             start = time.time()
-            retain_graph = False if i == epoches-1 else True
-            self.train_epoch(optimizer=optimizer, retain_graph=retain_graph)
+            self.train_epoch(optimizer=optimizer)
             train_time = time.time() - start
             if eval_train_acc:
                 self.eval_train()
@@ -235,29 +234,30 @@ class PrunningFineTuner_VGG16:
             self.model_saved = False
         else:
             torch.save(self.model, self.model_save_path)
-        self.model.zero_grad()
+        optimizer.zero_grad()
+        optimizer.step() # clear gradient https://github.com/pytorch/tutorials/blob/master/beginner_source/examples_nn/two_layer_net_optim.py#L52
         self.p.log("Finished fine tuning. best valid acc is %.4f" % best_acc)
 
-    def train_batch(self, optimizer, batch, label, rank_filters, retain_graph):
+    def train_batch(self, optimizer, batch, label, rank_filters):
         self.model.zero_grad()
         input = Variable(batch)
         if rank_filters:
             output = self.prunner.forward(input)  # 1800MB -> 3300MB
             output = self.criterion(output, Variable(label))  
-            output.backward(retain_graph=retain_graph) # 3300MB -> 7000MB
+            output.backward() # 3300MB -> 7000MB
         else:
             output=self.criterion(self.model(input), Variable(label))
             output.backward()
             optimizer.step()
 
-    def train_epoch(self, retain_graph, optimizer=None, rank_filters=False):
+    def train_epoch(self, optimizer=None, rank_filters=False):
         for batch, label in self.train_data_loader:
             self.train_batch(optimizer, batch.cuda(),
-                             label.cuda(), rank_filters, retain_graph)
+                             label.cuda(), rank_filters)
 
     def get_candidates_to_prune(self, num_filters_to_prune):
         self.prunner.reset()
-        self.train_epoch(rank_filters=True, retain_graph=False)
+        self.train_epoch(rank_filters)
         self.prunner.normalize_ranks_per_layer()
         return self.prunner.get_prunning_plan(num_filters_to_prune)
 
