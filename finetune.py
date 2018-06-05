@@ -189,8 +189,8 @@ class PrunningFineTuner_VGG16:
         total = 0
         for i, (batch, label) in enumerate(self.valid_data_loader):
             batch = batch.cuda()
-            print self.model is model
-            output = model(Variable(batch, volatile=True))
+            # print self.model is model -> True when first pruning iter and false when second
+            output = self.model(Variable(batch, volatile=True))
             pred = output.data.max(1)[1]
             correct += pred.cpu().eq(label).sum()
             total += label.size(0)
@@ -206,6 +206,8 @@ class PrunningFineTuner_VGG16:
             optimizer = \
                 optim.Adam(self.model.classifier.parameters(),
                            lr=0.0001)
+        self.p.log("before training")
+        self.get_cuda_memory()
         best_acc = 0
         for i in range(epoches):
             self.p.log("\nEpoch: %d" % i)
@@ -267,12 +269,12 @@ class PrunningFineTuner_VGG16:
         for param in self.model.features.parameters():
             param.requires_grad = status
 
-    def get_cuda_memory(self):
+    def get_cuda_memory(self,msg=""):
         command = "nvidia-smi -q -d Memory | grep -A4 GPU |grep Free"
-        res = os.popen(command).readlines()[self.device_id][:-1]
+        res = os.popen(command).readlines()[self.device_id][8:-1]
         res += "  ||  number of params in model is "+str(
             sum(param.numel() for param in model.parameters()))
-        self.p.log(res)
+        self.p.log(msg+res)
         return res
 
     def prune(self):
@@ -287,7 +289,6 @@ class PrunningFineTuner_VGG16:
         iterations = int(iterations * 2.0 / 3)
         self.p.log(
             r"Number of prunning iterations to reduce 67% filters is "+str(iterations))
-        self.prunner = FilterPrunner(self.model)
 
         for ii in range(iterations):
             self.p.log("#"*80)
@@ -295,12 +296,13 @@ class PrunningFineTuner_VGG16:
             self.p.log("Ranking filters.. ")
             start = time.time()
             # update model to the prunner
+            self.prunner = FilterPrunner(self.model)
             self.get_cuda_memory()
             # Make sure all the layers are trainable
             self.set_grad_requirment(True)
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
-            # self.prunner.clean()
+            self.prunner.clean()
             self.get_cuda_memory()
             layers_prunned = {}
             for layer_index, filter_index in prune_targets:
@@ -311,25 +313,25 @@ class PrunningFineTuner_VGG16:
             self.p.log("Layers that will be prunned :"+str(layers_prunned))
             self.p.log("Prunning filters.. ")
             start = time.time()
-            model = self.model.cpu()
+            self.model.cpu()
             self.p.log(prune_targets)
             for layer_index, filter_index in prune_targets:
-                model = prune_vgg16_conv_layer(
-                    model, layer_index, filter_index)
-            self.p.log(model)
+                self.model = prune_vgg16_conv_layer(
+                    self.model, layer_index, filter_index)
+            self.p.log(self.model)
             self.get_cuda_memory()
             self.p.log("Pruning filter use time %.2fs" % (time.time()-start))
-            self.model = model.cuda()
+            self.model.cuda()
             del model
             message = "%.2f%s" % (
                 100*float(self.total_num_filters()) / number_of_filters, "%")
             self.p.log("Filters left"+str(message))
             self.test()
-            self.get_cuda_memory()
 
             self.p.log("#"*80)
             self.p.log("Fine tuning to recover from prunning iteration.")
             optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
+            self.get_cuda_memory("after optimizer")
             self.train(optimizer, epoches=5)
             self.set_grad_requirment(False)
             self.test()
