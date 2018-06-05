@@ -282,7 +282,7 @@ class PrunningFineTuner_VGG16:
     
     def reload_model(self):
         torch.save(self.model, self.model_save_path)
-            self.model = torch.load(self.model_save_path).cuda()
+        self.model = torch.load(self.model_save_path).cuda()
 
     def prune(self):
         # Get the accuracy before prunning
