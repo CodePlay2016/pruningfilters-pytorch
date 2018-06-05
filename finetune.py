@@ -206,8 +206,7 @@ class PrunningFineTuner_VGG16:
             optimizer = \
                 optim.Adam(self.model.classifier.parameters(),
                            lr=0.0001)
-        self.p.log("before training")
-        self.get_cuda_memory()
+        self.get_cuda_memory("before training ")
         best_acc = 0
         for i in range(epoches):
             self.p.log("\nEpoch: %d" % i)
@@ -239,13 +238,14 @@ class PrunningFineTuner_VGG16:
     def train_batch(self, optimizer, batch, label, rank_filters):
         self.model.zero_grad()
         input = Variable(batch)
+        self.get_cuda_memory("before train batch: ")
         if rank_filters:
             output = self.prunner.forward(input)  # 1800MB -> 3700MB
             self.criterion(output, Variable(label)).backward()  # 3700MB -> 7000MB
         else:
             self.criterion(self.model(input), Variable(label)).backward()
             optimizer.step()
-        del input
+        self.get_cuda_memory("after train batch: ")
 
     def train_epoch(self, optimizer=None, rank_filters=False):
         for batch, label in self.train_data_loader:
@@ -322,7 +322,6 @@ class PrunningFineTuner_VGG16:
             self.get_cuda_memory()
             self.p.log("Pruning filter use time %.2fs" % (time.time()-start))
             self.model.cuda()
-            del model
             message = "%.2f%s" % (
                 100*float(self.total_num_filters()) / number_of_filters, "%")
             self.p.log("Filters left"+str(message))
