@@ -78,6 +78,7 @@ class FilterPrunner:
         activation_index = len(self.activations) - self.grad_index - 1
         activation = self.activations[activation_index]
         grad = grad.data
+        # activation is in shape of [inp_ch, out_ch, size, size]
         values = \
                 torch.sum((activation * grad), dim = 0).\
                     sum(dim=1).sum(dim=1)#.data
@@ -202,6 +203,7 @@ class PrunningFineTuner_VGG16:
             optimizer = \
                 optim.Adam(self.model.classifier.parameters(),
                            lr=0.0001)
+        self.model.train()
         self.get_cuda_memory("before training ")
         best_acc = 0
         for i in range(epoches):
@@ -291,8 +293,10 @@ class PrunningFineTuner_VGG16:
         iterations = int(iterations * 2.0 / 3)
         self.p.log(
             r"Number of prunning iterations to reduce 67% filters is "+str(iterations))
+        # Make sure all the layers are trainable
+        self.set_grad_requirment(True)
 
-        for ii in range(iterations):
+        for ii in range(1):
             self.p.log("#"*80)
             self.p.log("Prune iteration %d: " % ii)
             self.p.log("Ranking filters.. ")
@@ -300,8 +304,6 @@ class PrunningFineTuner_VGG16:
             # update model to the prunner
             self.prunner = FilterPrunner(self.model)
             self.get_cuda_memory()
-            # Make sure all the layers are trainable
-            self.set_grad_requirment(True)
 
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
@@ -333,15 +335,12 @@ class PrunningFineTuner_VGG16:
             self.p.log("Fine tuning to recover from prunning iteration.")
             optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
             self.train(optimizer, epoches=2)
-            self.set_grad_requirment(False)
             self.test()
 
         self.p.log("#"*80)
         self.p.log("Finished. Going to fine tune the model a bit more")
-        self.set_grad_requirment(True)
         self.train(optimizer, epoches=10)
         self.test()
-        self.model.eval()
         torch.save(self.model, os.path.join(self.log_dir, "model_pruned"))
         return self.model
 
