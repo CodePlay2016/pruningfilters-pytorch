@@ -287,6 +287,7 @@ class PrunningFineTuner_VGG16:
         iterations = int(iterations * 2.0 / 3)
         self.p.log(
             r"Number of prunning iterations to reduce 67% filters is "+str(iterations))
+        self.prunner = FilterPrunner(self.model)
 
         for ii in range(iterations):
             self.p.log("#"*80)
@@ -294,13 +295,12 @@ class PrunningFineTuner_VGG16:
             self.p.log("Ranking filters.. ")
             start = time.time()
             # update model to the prunner
-            self.prunner = FilterPrunner(self.model)
             self.get_cuda_memory()
             # Make sure all the layers are trainable
             self.set_grad_requirment(True)
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
-            self.prunner.clean()
+            # self.prunner.clean()
             self.get_cuda_memory()
             layers_prunned = {}
             for layer_index, filter_index in prune_targets:
