@@ -79,6 +79,7 @@ class FilterPrunner:
         activation = self.activations[activation_index]
         grad = grad.data
         # activation is in shape of [batches, channels, size, size]
+        # should add abs to the oracle ranking value according to the paper
         values = \
                 torch.sum((activation * grad), dim = 0).\
                     sum(dim=1).sum(dim=1)#.data
@@ -295,11 +296,11 @@ class PrunningFineTuner_VGG16:
                          num_filters_to_prune_per_iteration)
         iterations = int(iterations * 2.0 / 3)
         self.p.log(
-            r"We will prunee 67% filters in " + str(iterations)+ "iterations")
+            r"We will prune 67% filters in " + str(iterations)+ "iterations")
         # Make sure all the layers are trainable
         self.set_grad_requirment(True)
 
-        for ii in range(1):
+        for ii in range(iterations):
             self.p.log("#"*80)
             self.p.log("Prune iteration %d: " % ii)
             self.p.log("Ranking filters.. ")
@@ -332,11 +333,12 @@ class PrunningFineTuner_VGG16:
                 100*float(self.total_num_filters()) / number_of_filters, "%")
             self.p.log("Filters left"+str(message))
             cur_acc = self.test()
+            self.get_cuda_memory()
 
             self.p.log("#"*80)
             self.p.log("Fine tuning to recover from prunning iteration.")
             optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
-            self.train(optimizer, epoches=2, best_acc = cur_acc)
+            self.train(optimizer, epoches=3, best_acc = cur_acc)
             self.test()
 
         self.p.log("#"*80)
