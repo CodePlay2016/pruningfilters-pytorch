@@ -161,7 +161,7 @@ class PrunningFineTuner_VGG16:
             total += label.size(0)
         del output
         acc = float(correct) / total
-        self.p.log("Test Accuracy :%.4f" % (acc)
+        self.p.log("Test Accuracy :%.4f" % (acc))
         self.model.train()
         return acc
 
