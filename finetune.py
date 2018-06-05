@@ -295,7 +295,7 @@ class PrunningFineTuner_VGG16:
                          num_filters_to_prune_per_iteration)
         iterations = int(iterations * 2.0 / 3)
         self.p.log(
-            r"We will prunee 67% filters in " + str(iterations)) + "iterations"
+            r"We will prunee 67% filters in " + str(iterations)+ "iterations")
         # Make sure all the layers are trainable
         self.set_grad_requirment(True)
 
