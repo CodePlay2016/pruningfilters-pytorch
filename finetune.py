@@ -305,7 +305,7 @@ class PrunningFineTuner_VGG16:
             self.set_grad_requirment(True)
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
-            self.prunner.clean()
+            # self.prunner.clean()
             self.get_cuda_memory()
             layers_prunned = {}
             for layer_index, filter_index in prune_targets:
@@ -323,10 +323,7 @@ class PrunningFineTuner_VGG16:
                     self.model, layer_index, filter_index)
             torch.save(self.model, self.model_save_path)
             self.model = torch.load(self.model_save_path).cuda()
-            self.get_cuda_memory("before reload: ")
             self.p.log(self.model)
-            self.get_cuda_memory()
-            self.get_cuda_memory("after reload: ")
             self.p.log("Pruning filter use time %.2fs" % (time.time()-start))
             message = "%.2f%s" % (
                 100*float(self.total_num_filters()) / number_of_filters, "%")
