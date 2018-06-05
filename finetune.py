@@ -257,7 +257,7 @@ class PrunningFineTuner_VGG16:
 
     def get_candidates_to_prune(self, num_filters_to_prune):
         self.prunner.reset()
-        self.train_epoch(rank_filters)
+        self.train_epoch(rank_filters=True)
         self.prunner.normalize_ranks_per_layer()
         return self.prunner.get_prunning_plan(num_filters_to_prune)
 
