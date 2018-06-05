@@ -246,10 +246,8 @@ class PrunningFineTuner_VGG16:
             output.backward(retain_graph=retain_graph) # 3300MB -> 7000MB
         else:
             output=self.criterion(self.model(input), Variable(label))
-            self.get_cuda_memory("before backward: ")
             output.backward()
             optimizer.step()
-        self.get_cuda_memory("after train batch: ")
 
     def train_epoch(self, retain_graph, optimizer=None, rank_filters=False):
         for batch, label in self.train_data_loader:
