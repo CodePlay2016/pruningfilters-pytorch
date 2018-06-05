@@ -59,7 +59,7 @@ class FilterPrunner:
     
     def clean(self):
         for activation in self.activations:
-            activation.data = None
+            activation.data = torch.Tensor([])
             gc.collect()
 
     def forward(self, x):
