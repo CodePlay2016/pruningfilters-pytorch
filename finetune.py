@@ -84,7 +84,7 @@ class FilterPrunner:
         activation = self.activations[activation_index]
         values = \
                 torch.sum((activation * grad), dim = 0).\
-                    sum(dim=2).sum(dim=3)[0, :, 0, 0].data
+                    sum(dim=1).sum(dim=1).data
 
         # Normalize the rank by the filter dimensions
         values = \
