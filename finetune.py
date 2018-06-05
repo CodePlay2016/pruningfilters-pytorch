@@ -240,7 +240,6 @@ class PrunningFineTuner_VGG16:
     def train_batch(self, optimizer, batch, label, rank_filters, retain_graph):
         self.model.zero_grad()
         input = Variable(batch)
-        self.get_cuda_memory("before train batch: ")
         if rank_filters:
             output = self.prunner.forward(input)  # 1800MB -> 3300MB
             output = self.criterion(output, Variable(label))  
@@ -323,10 +322,13 @@ class PrunningFineTuner_VGG16:
             for layer_index, filter_index in prune_targets:
                 self.model = prune_vgg16_conv_layer(
                     self.model, layer_index, filter_index)
+            torch.save(self.model, self.model_save_path)
+            self.model = torch.load(self.model_save_path).cuda()
+            self.get_cuda_memory("before reload: ")
             self.p.log(self.model)
             self.get_cuda_memory()
+            self.get_cuda_memory("after reload: ")
             self.p.log("Pruning filter use time %.2fs" % (time.time()-start))
-            self.model.cuda()
             message = "%.2f%s" % (
                 100*float(self.total_num_filters()) / number_of_filters, "%")
             self.p.log("Filters left"+str(message))
@@ -335,7 +337,6 @@ class PrunningFineTuner_VGG16:
             self.p.log("#"*80)
             self.p.log("Fine tuning to recover from prunning iteration.")
             optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
-            self.get_cuda_memory("after optimizer")
             self.train(optimizer, epoches=2)
             self.set_grad_requirment(False)
             self.test()
