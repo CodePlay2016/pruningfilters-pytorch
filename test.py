@@ -1,6 +1,7 @@
 import torch
 import argparse
 from finetune import ModifiedVGG16Model
+from torch.autograd import Variable
 import dataset
 
 
