@@ -56,7 +56,7 @@ class FilterPrunner:
         self.grad_index = 0
         self.activation_to_layer = {}
         self.filter_ranks = {}
-    
+
     def forward(self, x):
         self.activations = []
         self.gradients = []
@@ -204,9 +204,9 @@ class PrunningFineTuner_VGG16:
             optimizer = \
                 optim.Adam(self.model.classifier.parameters(),
                            lr=0.0001)
-        self.model.train()
-        self.get_cuda_memory("before training ")
+        # self.get_cuda_memory("before training ")
         for i in range(epoches):
+            self.model.train()
             self.p.log("\nEpoch: %d" % i)
             start = time.time()
             self.train_epoch(optimizer=optimizer)
@@ -223,7 +223,7 @@ class PrunningFineTuner_VGG16:
                     self.p.log("model resaved...")
             self.p.log("train step time elaps: %.2fs, train_acc eval time elaps: %.2fs, total time elaps: %.2fs" % (
                 train_time, train_eval_time, time.time()-start))
-            self.get_cuda_memory("Fine tuning cuda memory is:")
+            # self.get_cuda_memory("Fine tuning cuda memory is:")
         if save_highest and self.model_saved:
             self.p.log("model reloaded...")
             del self.model
@@ -242,7 +242,7 @@ class PrunningFineTuner_VGG16:
             if optimizer is None:
                 optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
             output = self.prunner.forward(input)  # 1800MB -> 3300MB
-            output = self.criterion(output, Variable(label))  
+            output = self.criterion(output, Variable(label))
             output.backward() # 3300MB -> 7000MB
             optimizer.zero_grad()
             optimizer.step()
@@ -280,7 +280,7 @@ class PrunningFineTuner_VGG16:
             sum(param.numel() for param in model.parameters()))
         self.p.log(msg+res)
         return res
-    
+
     def reload_model(self):
         torch.save(self.model, self.model_save_path)
         self.model = torch.load(self.model_save_path).cuda()
@@ -307,11 +307,11 @@ class PrunningFineTuner_VGG16:
             start = time.time()
             # update model to the prunner
             self.prunner = FilterPrunner(self.model)
-            self.get_cuda_memory()
+            # self.get_cuda_memory()
 
             prune_targets = self.get_candidates_to_prune(
                 num_filters_to_prune_per_iteration)
-            self.get_cuda_memory()
+            # self.get_cuda_memory()
             layers_prunned = {}
             for layer_index, filter_index in prune_targets:
                 if layer_index not in layers_prunned:
@@ -333,19 +333,19 @@ class PrunningFineTuner_VGG16:
                 100*float(self.total_num_filters()) / number_of_filters, "%")
             self.p.log("Filters left"+str(message))
             cur_acc = self.test()
-            self.get_cuda_memory()
+            # self.get_cuda_memory()
 
             self.p.log("#"*80)
             self.p.log("Fine tuning to recover from prunning iteration.")
             optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
             self.train(optimizer, epoches=3, best_acc = cur_acc)
-            self.test()
+            cur_acc = self.test()
 
         self.p.log("#"*80)
         self.p.log("Finished. Going to fine tune the model a bit more")
         self.reload_model()
         optimizer = optim.Adam(self.model.parameters(), lr=0.0001)
-        self.train(optimizer, epoches=10)
+        self.train(optimizer, epoches=10, best_acc=cur_acc)
         self.test()
         torch.save(self.model, os.path.join(self.log_dir, "model_pruned"))
         return self.model
